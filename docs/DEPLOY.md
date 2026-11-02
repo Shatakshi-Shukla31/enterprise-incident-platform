@@ -24,7 +24,7 @@ The full deployment in `docker-compose.yml` needs about 750 MB or more, while a 
    Close that PowerShell window afterwards, so your local app keeps using its own database.
 
 4. On [Render](https://render.com), choose **New**, then **Blueprint**, and select the repository. `render.yaml` sets everything except `DATABASE_URL`, which Render asks for. Paste the same connection string.
-5. The first build takes several minutes, because it trains the models. Render then shows the site's address.
+5. The first build took about 40 minutes, because it installs every dependency and trains the models. Render then shows the site's address.
 
 ## What to expect
 
@@ -37,10 +37,20 @@ The full deployment in `docker-compose.yml` needs about 750 MB or more, while a 
 
 ## Verified and not verified
 
-Verified on a Windows machine with a throwaway database, using production settings, no Redis and no Celery processes: migrations, seeding, sign-in with secure cookies, ticket triage, the assistant, the dashboard and all four scheduled jobs.
+Deployed on 3 November 2026 at <https://incident-platform-ql4e.onrender.com>, using PostgreSQL 17 and pgvector 0.8.0 on Neon.
 
-Not verified until the first real deployment:
+Verified on the live site in a browser: sign-in with secure cookies, the incident list, notification charts, the dashboard, ticket triage, cited answers, refusal of an off-topic question and the sign-up rules. The service stayed healthy after that AI work.
 
-- The root `Dockerfile` has never been built, because Docker is not available on the development machine.
-- Neon's connection pooler and pgvector were not tested. Local tests used PGlite.
-- Memory use on Linux and speed on Render's 0.1 CPU were not measured.
+| Live timing, once awake | Time |
+| --- | --- |
+| First assistant answer, which loads the embedding model | 15 s |
+| Later answers | 1 to 6 s |
+| New ticket with AI triage | 3 s |
+
+Verified locally with production settings and no Redis or Celery processes: all four scheduled jobs run and succeed.
+
+Not measured on the live site:
+
+- How long the first visit takes after the service has slept.
+- Memory use, which Render shows in its dashboard. The 411 MB peak was measured on Windows.
+- Scheduled jobs and alerts, which need Render's logs to confirm.

@@ -4,6 +4,8 @@ An incident management system with ML triage and evidence-grounded troubleshooti
 
 All demo data is synthetic. The SLA method is also benchmarked on a public, real incident log, because a score on self-generated data proves very little.
 
+**Live demo:** <https://incident-platform-ql4e.onrender.com>. It runs on free hosting and sleeps when idle, so the first visit can take a while to load.
+
 ![Dashboard](docs/screenshots/dashboard.png)
 
 | Incident with cited resolution | Support assistant |
@@ -137,6 +139,8 @@ python -m scripts.smoke_test      # against a running stack, from backend/
 | Browser checks in headless Edge: theme, notification charts, assistant, phone width, production CSP | 41 checks passed |
 | Single-process mode in headless Edge, with production settings and no Redis or Celery | 10 checks passed |
 | Sign-in page in headless Edge: both account types, sign-up rules, phone width | 21 checks passed |
+| GitHub Actions: backend on PostgreSQL 17, frontend, and both Docker images | All 3 jobs passed |
+| Live site on Render and Neon, in headless Edge | 16 checks passed |
 | Live smoke test: real API, Celery worker and scheduler | 30 checks passed, before the theme, chart and knowledge changes |
 | Browser journey in headless Edge, including phone width and dark mode | 21 checks passed, before the same changes |
 
@@ -171,8 +175,8 @@ docs/             Architecture, API, evaluation, setup and generated metrics
 ## Limitations
 
 - **The real-LLM path was never run against a live model.** Provider requests and parsing are tested against mocked HTTP, and all reported RAG numbers use the extractive provider. Its 1.0 grounding score is true by construction, because it copies source sentences.
-- **Docker Compose, the images and the CI workflow were not run.** Docker was not available on the development machine. The files parse and are reviewed, but the first real run may need fixes.
-- **Concurrency is less proven than the rest.** Local verification used PGlite, which runs PostgreSQL 18 with pgvector but serialises transactions. `SKIP LOCKED` behaviour under real parallel load has not been exercised.
+- **The full Docker Compose stack was never started.** CI builds both images and validates the Compose file, and the single-container image runs on Render, but `docker compose up` itself has not been run.
+- **Concurrency is less proven than the rest.** Local verification used PGlite, which serialises transactions. CI and the live site use real PostgreSQL, but `SKIP LOCKED` behaviour under heavy parallel load has not been exercised.
 - **Remediation handlers are simulators.** They validate the target and record what would happen. Nothing touches real infrastructure.
 - **Text models have only seen synthetic tickets.** Expect lower scores on real ones, and retrain before relying on them.
 - **The evidence threshold has a thin margin.** The weakest answerable query scored 0.244 and the strongest unanswerable one 0.366, so the two groups overlap and some good questions are refused.
