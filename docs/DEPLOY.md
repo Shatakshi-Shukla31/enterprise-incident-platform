@@ -15,15 +15,10 @@ The full deployment in `docker-compose.yml` needs about 750 MB or more, while a 
 
 1. Create a [Neon](https://neon.com) project in the Singapore region and copy its connection string.
 2. Create an empty GitHub repository and push this code.
-3. Load the database once. This uses your local `.env` for `DEMO_PASSWORD` and takes several minutes:
+3. Load the database once. This uses your local `.env` for `DEMO_PASSWORD` and takes several minutes. From `backend`, run this as one line, because a pasted block would answer the prompt with its own next line:
 
    ```powershell
-   cd backend
-   $env:DATABASE_URL = Read-Host "Paste the Neon connection string"
-   $env:DB_DISABLE_PREPARED_STATEMENTS = "true"
-   $env:SINGLE_PROCESS = "true"
-   python -m alembic upgrade head
-   python -m scripts.seed_demo
+   $env:DATABASE_URL = Read-Host "Paste the Neon connection string"; $env:DB_DISABLE_PREPARED_STATEMENTS = "true"; $env:SINGLE_PROCESS = "true"; python -m alembic upgrade head; python -m scripts.seed_demo
    ```
 
    Close that PowerShell window afterwards, so your local app keeps using its own database.
