@@ -1,0 +1,41 @@
+{
+  "rows": 15747,
+  "date_range": [
+    "2025-01-06 05:05:09.838619+00:00",
+    "2026-06-29 23:07:43.179019+00:00"
+  ],
+  "null_counts": {},
+  "exact_duplicate_text_rows": 2747,
+  "category_counts": {
+    "cloud_infrastructure": 2086,
+    "access_identity": 2035,
+    "network": 2001,
+    "security": 2001,
+    "software_application": 1996,
+    "database": 1984,
+    "email_collaboration": 1966,
+    "hardware": 1678
+  },
+  "team_counts": {
+    "Application Support": 3677,
+    "End User Computing": 2671,
+    "Network Operations": 2150,
+    "Security Operations": 1916,
+    "Identity & Access": 1845,
+    "Database Administration": 1749,
+    "Cloud Platform": 1739
+  },
+  "priority_counts": {
+    "P4": 6899,
+    "P3": 3435,
+    "P1": 2870,
+    "P2": 2543
+  },
+  "sla_breach_rate": 0.2402,
+  "sla_breach_rate_by_priority": {
+    "P1": 0.3136,
+    "P2": 0.2757,
+    "P3": 0.3956,
+    "P4": 0.1193
+  }
+}

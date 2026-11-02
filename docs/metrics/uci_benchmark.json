@@ -1,0 +1,79 @@
+{
+  "dataset": "UCI Incident management process enriched event log (public, anonymised)",
+  "purpose": "Validates the leakage-safe method on real data. Not used by the served model.",
+  "incidents": 23362,
+  "breach_rate": 0.3822,
+  "date_range": [
+    "2016-02-29 01:16:00",
+    "2017-02-16 14:17:00"
+  ],
+  "splits": {
+    "train": 7156,
+    "validation": 1789,
+    "test": 5841
+  },
+  "breach_rate_by_split": {
+    "train": 0.6571,
+    "validation": 0.2778,
+    "test": 0.2375
+  },
+  "breach_rate_by_month": {
+    "2016-02": {
+      "rate": 0.3687,
+      "incidents": 198
+    },
+    "2016-03": {
+      "rate": 0.6406,
+      "incidents": 8221
+    },
+    "2016-04": {
+      "rate": 0.2424,
+      "incidents": 7487
+    },
+    "2016-05": {
+      "rate": 0.2337,
+      "incidents": 7192
+    }
+  },
+  "selected_model": "logistic_regression",
+  "validation_comparison": {
+    "baseline_prior": {
+      "roc_auc": 0.5,
+      "pr_auc": 0.2778,
+      "brier": 0.3445,
+      "ece": 0.3793
+    },
+    "logistic_regression": {
+      "roc_auc": 0.7022,
+      "pr_auc": 0.4765,
+      "brier": 0.3079,
+      "ece": 0.3549
+    },
+    "lightgbm": {
+      "roc_auc": 0.6768,
+      "pr_auc": 0.4399,
+      "brier": 0.3109,
+      "ece": 0.3517
+    }
+  },
+  "test": {
+    "roc_auc": 0.7067,
+    "pr_auc": 0.439,
+    "brier": 0.3215,
+    "ece": 0.3938
+  },
+  "test_breach_rate": 0.2375,
+  "test_with_deliberate_leakage": {
+    "roc_auc": 0.9854,
+    "pr_auc": 0.9743,
+    "brier": 0.1199,
+    "ece": 0.2529
+  },
+  "leaky_features": [
+    "final_sys_mod_count",
+    "final_reassignment_count",
+    "final_reopen_count",
+    "resolution_hours",
+    "closed_code"
+  ]
+}

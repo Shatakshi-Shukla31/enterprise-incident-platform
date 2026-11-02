@@ -1,0 +1,14 @@
+{
+  "name": "local-postgres",
+  "private": true,
+  "description": "PostgreSQL with pgvector for machines without Docker. Development and testing only.",
+  "scripts": {
+    "start": "pglite-server --db=./data --port=5433 --host=127.0.0.1 --extensions=@electric-sql/pglite-pgvector:vector --max-connections=20",
+    "start:test": "pglite-server --db=memory:// --port=5434 --host=127.0.0.1 --extensions=@electric-sql/pglite-pgvector:vector --max-connections=20"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.14",
+    "@electric-sql/pglite-pgvector": "0.0.15",
+    "@electric-sql/pglite-socket": "0.2.17"
+  }
+}

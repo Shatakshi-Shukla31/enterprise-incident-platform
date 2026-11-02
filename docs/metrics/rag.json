@@ -1,0 +1,41 @@
+{
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "embedding_provider": "fastembed",
+  "llm_provider": "extractive",
+  "corpus": "synthetic knowledge articles",
+  "threshold": {
+    "selected": 0.37,
+    "dev_balanced_accuracy": 0.9846
+  },
+  "retrieval_test": {
+    "vector": {
+      "queries": 67,
+      "recall_at_1": 0.8881,
+      "recall_at_3": 0.9552,
+      "recall_at_5": 0.9627,
+      "mrr": 0.9259
+    },
+    "tfidf_keyword_baseline": {
+      "queries": 67,
+      "recall_at_1": 0.8433,
+      "recall_at_3": 0.8881,
+      "recall_at_5": 0.9328,
+      "mrr": 0.8857
+    }
+  },
+  "generation_test": {
+    "answerable_queries": 67,
+    "answered": 63,
+    "citation_correct_rate": 0.8889,
+    "mean_grounding_score": 1.0,
+    "unanswerable_queries": 18,
+    "correctly_refused": 18,
+    "refusal_rate": 1.0
+  },
+  "latency_ms": {
+    "retrieval_p50": 37.3,
+    "retrieval_p95": 42.7,
+    "generation_p50": 99.3,
+    "generation_p95": 301.1
+  }
+}

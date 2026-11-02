@@ -1,0 +1,162 @@
+{
+  "selected_model": "lightgbm",
+  "selection_metric": "validation pr_auc",
+  "calibration": {
+    "selected": "none",
+    "validation_brier": {
+      "none": 0.14218,
+      "sigmoid": 0.14222,
+      "isotonic": 0.14243
+    },
+    "fitted_on": "a dedicated chronological split"
+  },
+  "validation_comparison": {
+    "baseline_prior": {
+      "roc_auc": 0.5,
+      "pr_auc": 0.2282,
+      "brier": 0.1763,
+      "ece": 0.014
+    },
+    "logistic_regression": {
+      "roc_auc": 0.743,
+      "pr_auc": 0.4882,
+      "brier": 0.1502,
+      "ece": 0.0332
+    },
+    "lightgbm": {
+      "roc_auc": 0.7637,
+      "pr_auc": 0.5472,
+      "brier": 0.1422,
+      "ece": 0.0184
+    }
+  },
+  "metrics": {
+    "test": {
+      "roc_auc": 0.756,
+      "pr_auc": 0.5411,
+      "brier": 0.1499,
+      "ece": 0.0215,
+      "calibration_bins": [
+        {
+          "bin": "0.0-0.1",
+          "count": 537,
+          "predicted": 0.0611,
+          "observed": 0.0466
+        },
+        {
+          "bin": "0.1-0.2",
+          "count": 614,
+          "predicted": 0.1459,
+          "observed": 0.1694
+        },
+        {
+          "bin": "0.2-0.3",
+          "count": 529,
+          "predicted": 0.2459,
+          "observed": 0.2382
+        },
+        {
+          "bin": "0.3-0.4",
+          "count": 242,
+          "predicted": 0.3469,
+          "observed": 0.3388
+        },
+        {
+          "bin": "0.4-0.5",
+          "count": 230,
+          "predicted": 0.4478,
+          "observed": 0.4043
+        },
+        {
+          "bin": "0.5-0.6",
+          "count": 121,
+          "predicted": 0.5423,
+          "observed": 0.4876
+        },
+        {
+          "bin": "0.6-0.7",
+          "count": 27,
+          "predicted": 0.6458,
+          "observed": 0.7037
+        },
+        {
+          "bin": "0.7-0.8",
+          "count": 11,
+          "predicted": 0.7453,
+          "observed": 0.8182
+        },
+        {
+          "bin": "0.8-0.9",
+          "count": 15,
+          "predicted": 0.8542,
+          "observed": 0.9333
+        },
+        {
+          "bin": "0.9-1.0",
+          "count": 37,
+          "predicted": 0.9391,
+          "observed": 1.0
+        }
+      ]
+    },
+    "test_baseline_prior": {
+      "pr_auc": 0.2404,
+      "brier": 0.1826
+    },
+    "test_breach_rate": 0.2404,
+    "at_alert_threshold": {
+      "threshold": 0.7,
+      "flag_rate": 0.0267,
+      "precision": 0.9524,
+      "recall": 0.1056
+    },
+    "at_validation_tuned_threshold": {
+      "threshold": 0.25,
+      "flag_rate": 0.3876,
+      "precision": 0.4083,
+      "recall": 0.6585
+    }
+  },
+  "features": [
+    "category",
+    "priority",
+    "impact",
+    "urgency",
+    "channel",
+    "team",
+    "hour",
+    "day_of_week",
+    "is_weekend",
+    "is_after_hours",
+    "description_length",
+    "team_backlog",
+    "team_backlog_high"
+  ],
+  "excluded_as_leakage": [
+    "assignee_id",
+    "closed_at",
+    "escalation_level",
+    "first_response_at",
+    "reassignment_count",
+    "resolution_minutes",
+    "resolution_notes",
+    "resolved_at",
+    "sla_breached",
+    "sla_breached_at",
+    "status",
+    "topic"
+  ],
+  "data": {
+    "sha256": "830ba52aeaaafd3e3571b19cb2c90709a955b215c2f6b09130f4da444c1756c5",
+    "seed": 42,
+    "synthetic": true,
+    "splits": {
+      "train": 9310,
+      "validation": 2248,
+      "calibration": 1504,
+      "test": 2363
+    },
+    "split_strategy": "chronological; rows with labels unknown at the split boundary removed"
+  },
+  "version": "20261101-130835"
+}

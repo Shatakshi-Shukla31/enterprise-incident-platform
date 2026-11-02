@@ -1,0 +1,198 @@
+{
+  "selected_model": "category_rule_baseline",
+  "selection_metric": "validation accuracy",
+  "validation_comparison": {
+    "category_rule_baseline": {
+      "accuracy": 0.7385,
+      "macro_precision": 0.7638,
+      "macro_recall": 0.7565,
+      "macro_f1": 0.7533,
+      "weighted_f1": 0.7379,
+      "top3_accuracy": 0.9544
+    },
+    "tfidf_logistic_regression": {
+      "accuracy": 0.7185,
+      "macro_precision": 0.7245,
+      "macro_recall": 0.7428,
+      "macro_f1": 0.7304,
+      "weighted_f1": 0.716,
+      "top3_accuracy": 0.9631
+    }
+  },
+  "metrics": {
+    "test": {
+      "accuracy": 0.7421,
+      "macro_precision": 0.7577,
+      "macro_recall": 0.7536,
+      "macro_f1": 0.7526,
+      "weighted_f1": 0.7433
+    },
+    "test_top3_accuracy": 0.9487,
+    "test_rule_baseline": {
+      "accuracy": 0.7421,
+      "macro_precision": 0.7577,
+      "macro_recall": 0.7536,
+      "macro_f1": 0.7526,
+      "weighted_f1": 0.7433
+    },
+    "test_confidence_coverage": [
+      {
+        "min_confidence": 0.5,
+        "coverage": 0.8744,
+        "accuracy": 0.783
+      },
+      {
+        "min_confidence": 0.6,
+        "coverage": 0.7677,
+        "accuracy": 0.8016
+      },
+      {
+        "min_confidence": 0.7,
+        "coverage": 0.5236,
+        "accuracy": 0.8325
+      },
+      {
+        "min_confidence": 0.8,
+        "coverage": 0.239,
+        "accuracy": 0.9206
+      },
+      {
+        "min_confidence": 0.9,
+        "coverage": 0.0631,
+        "accuracy": 0.9919
+      }
+    ],
+    "per_class": {
+      "Application Support": {
+        "precision": 0.6317,
+        "recall": 0.7089,
+        "f1-score": 0.6681,
+        "support": 450.0
+      },
+      "Cloud Platform": {
+        "precision": 0.6955,
+        "recall": 0.7217,
+        "f1-score": 0.7083,
+        "support": 212.0
+      },
+      "Database Administration": {
+        "precision": 0.75,
+        "recall": 0.788,
+        "f1-score": 0.7685,
+        "support": 217.0
+      },
+      "End User Computing": {
+        "precision": 0.88,
+        "recall": 0.6594,
+        "f1-score": 0.7539,
+        "support": 367.0
+      },
+      "Identity & Access": {
+        "precision": 0.7716,
+        "recall": 0.8211,
+        "f1-score": 0.7956,
+        "support": 218.0
+      },
+      "Network Operations": {
+        "precision": 0.7372,
+        "recall": 0.7891,
+        "f1-score": 0.7623,
+        "support": 256.0
+      },
+      "Security Operations": {
+        "precision": 0.838,
+        "recall": 0.787,
+        "f1-score": 0.8117,
+        "support": 230.0
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Application Support",
+        "Cloud Platform",
+        "Database Administration",
+        "End User Computing",
+        "Identity & Access",
+        "Network Operations",
+        "Security Operations"
+      ],
+      "matrix": [
+        [
+          319,
+          41,
+          44,
+          14,
+          5,
+          19,
+          8
+        ],
+        [
+          32,
+          153,
+          10,
+          5,
+          0,
+          10,
+          2
+        ],
+        [
+          27,
+          10,
+          171,
+          0,
+          0,
+          9,
+          0
+        ],
+        [
+          91,
+          0,
+          1,
+          242,
+          2,
+          20,
+          11
+        ],
+        [
+          9,
+          2,
+          0,
+          2,
+          179,
+          12,
+          14
+        ],
+        [
+          5,
+          14,
+          2,
+          0,
+          33,
+          202,
+          0
+        ],
+        [
+          22,
+          0,
+          0,
+          12,
+          13,
+          2,
+          181
+        ]
+      ]
+    }
+  },
+  "data": {
+    "sha256": "830ba52aeaaafd3e3571b19cb2c90709a955b215c2f6b09130f4da444c1756c5",
+    "seed": 42,
+    "synthetic": true,
+    "splits": {
+      "train": 9100,
+      "validation": 1950,
+      "test": 1950
+    },
+    "split_strategy": "chronological, deduplicated on normalised text"
+  },
+  "version": "20261101-130834"
+}
