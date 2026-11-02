@@ -1,10 +1,13 @@
+import hmac
 import uuid
 from datetime import timedelta
 
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.enums import Role
 from app.core.security import (
     create_access_token,
     hash_password,
@@ -16,11 +19,39 @@ from app.core.security import (
 from app.db.base import utcnow
 from app.models import RefreshToken, User
 from app.services import audit
-from app.services.errors import ServiceError
+from app.services.errors import Conflict, Forbidden, ServiceError
 
 
 class InvalidCredentials(ServiceError):
     status_code = 401
+
+
+def _is_admin_code(code: str) -> bool:
+    expected = get_settings().admin_signup_code
+    return bool(expected) and hmac.compare_digest(code.encode(), expected.encode())
+
+
+def register(db: Session, email: str, full_name: str, password: str, admin_code: str | None = None) -> User:
+    """Self-service sign-up creates a requester. Only the secret access code creates an
+    admin, so a public site never lets a stranger hand themselves control of it."""
+    if admin_code is not None and not _is_admin_code(admin_code):
+        audit.record(db, "auth.admin_signup_denied", email=email[:255])
+        db.commit()
+        raise Forbidden("That admin access code is not valid")
+    user = User(
+        email=email.lower(),
+        full_name=full_name,
+        password_hash=hash_password(password),
+        role=Role.ADMIN if admin_code is not None else Role.REQUESTER,
+    )
+    db.add(user)
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        db.rollback()
+        raise Conflict("Email already registered") from exc
+    audit.record(db, "auth.registered", user, role=user.role)
+    return user
 
 
 def authenticate(db: Session, email: str, password: str) -> User:

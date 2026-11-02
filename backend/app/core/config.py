@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     rate_limit_default: str = "300/minute"
     rate_limit_login: str = "10/minute"
+    rate_limit_register: str = "5/minute"
     # Every page load refreshes, and many users can share one address.
     rate_limit_refresh: str = "120/minute"
     rate_limit_ai: str = "30/minute"
@@ -50,6 +51,8 @@ class Settings(BaseSettings):
 
     metrics_token: str | None = None
     demo_password: str | None = None
+    # Lets someone create an admin account from the sign-in page. Unset means nobody can.
+    admin_signup_code: str | None = None
 
     artifacts_dir: Path = BACKEND_DIR / "artifacts"
     knowledge_dir: Path = BACKEND_DIR / "data" / "knowledge"
@@ -108,6 +111,8 @@ class Settings(BaseSettings):
                 raise ValueError("COOKIE_SECURE must be true in production")
             if len(set(self.jwt_secret)) < 10:
                 raise ValueError("JWT_SECRET is too weak for production")
+            if self.admin_signup_code and len(self.admin_signup_code) < 16:
+                raise ValueError("ADMIN_SIGNUP_CODE must be at least 16 characters in production")
         if self.llm_provider != "extractive" and not (self.llm_base_url and self.llm_model):
             raise ValueError("LLM_BASE_URL and LLM_MODEL are required for this LLM_PROVIDER")
         return self

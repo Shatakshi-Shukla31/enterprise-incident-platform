@@ -67,6 +67,15 @@ class UserCreate(BaseModel):
     team_id: int | None = None
 
 
+class Registration(BaseModel):
+    """Has no role field on purpose: the server decides the role."""
+
+    email: EmailStr
+    full_name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)]
+    password: Password
+    admin_code: str | None = Field(None, max_length=200)
+
+
 class UserUpdate(BaseModel):
     full_name: str | None = Field(None, min_length=2, max_length=120)
     role: Role | None = None

@@ -14,5 +14,7 @@ services:
         value: "true"
       - key: JWT_SECRET
         generateValue: true
+      - key: ADMIN_SIGNUP_CODE
+        generateValue: true
       - key: DATABASE_URL
         sync: false

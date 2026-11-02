@@ -32,6 +32,8 @@ The full deployment in `docker-compose.yml` needs about 750 MB or more, while a 
 - **Limits.** Neon's free plan has 1 GB of storage per project and 100 compute hours per month. The demo database is about 94 MB, and Neon also sleeps when idle.
 - **Demo tickets age.** Open tickets pass their deadlines within about three days, and the 30-day dashboard view thins out over time. Run the seed against an emptied database to refresh it.
 - **Anyone with the password can change the demo data.** It holds only synthetic data. Keep the password out of public pages and share it directly.
+- **Anyone can create a User account.** New accounts can raise tickets and use the assistant, and see only their own tickets and public articles.
+- **Creating an Admin account needs the access code.** Render generates `ADMIN_SIGNUP_CODE`, and you can read it on the service's Environment page. Keep it private, because it grants full control of the site.
 
 ## Verified and not verified
 

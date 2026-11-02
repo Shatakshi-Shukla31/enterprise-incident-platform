@@ -99,7 +99,7 @@ On Windows without Docker, follow [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md). Th
 
 ### Demo accounts
 
-All accounts share the `DEMO_PASSWORD` you set in `.env`.
+All accounts share the `DEMO_PASSWORD` you set in `.env`. Anyone can also create a User account on the sign-in page. Creating an Admin account there needs `ADMIN_SIGNUP_CODE`, and is switched off while that is empty.
 
 | Email | Role | Sees |
 | --- | --- | --- |
@@ -132,10 +132,11 @@ python -m scripts.smoke_test      # against a running stack, from backend/
 
 | Layer | Result |
 | --- | --- |
-| Backend tests, against real PostgreSQL + pgvector | 232 passed, 90% coverage |
-| Frontend tests | 36 passed |
+| Backend tests, against real PostgreSQL + pgvector | 245 passed, 90% coverage |
+| Frontend tests | 43 passed |
 | Browser checks in headless Edge: theme, notification charts, assistant, phone width, production CSP | 41 checks passed |
 | Single-process mode in headless Edge, with production settings and no Redis or Celery | 10 checks passed |
+| Sign-in page in headless Edge: both account types, sign-up rules, phone width | 21 checks passed |
 | Live smoke test: real API, Celery worker and scheduler | 30 checks passed, before the theme, chart and knowledge changes |
 | Browser journey in headless Edge, including phone width and dark mode | 21 checks passed, before the same changes |
 

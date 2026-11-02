@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.api.deps import DB, CurrentUser
 from app.api.rate_limit import limiter
 from app.core.config import get_settings
-from app.schemas.api import PasswordChange, TokenOut, UserOut
+from app.schemas.api import PasswordChange, Registration, TokenOut, UserOut
 from app.services import auth as auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -36,6 +36,15 @@ def login(
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> TokenOut:
     user = auth_service.authenticate(db, form.username, form.password)
+    access, expires_in, refresh = auth_service.issue_tokens(db, user)
+    _set_refresh_cookie(response, refresh)
+    return TokenOut(access_token=access, expires_in=expires_in)
+
+
+@router.post("/register", response_model=TokenOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit(settings.rate_limit_register)
+def register(request: Request, response: Response, payload: Registration, db: DB) -> TokenOut:
+    user = auth_service.register(db, payload.email, payload.full_name, payload.password, payload.admin_code)
     access, expires_in, refresh = auth_service.issue_tokens(db, user)
     _set_refresh_cookie(response, refresh)
     return TokenOut(access_token=access, expires_in=expires_in)

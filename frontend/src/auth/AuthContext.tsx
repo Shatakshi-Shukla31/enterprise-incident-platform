@@ -6,7 +6,8 @@ import type { Role, User } from "../lib/types";
 interface AuthState {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, options?: { staffOnly?: boolean }) => Promise<void>;
+  register: (details: client.Registration) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -28,8 +29,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string, options?: { staffOnly?: boolean }) => {
     await client.login(email, password);
+    const account = await client.api.get<User>("/auth/me");
+    // Only tidies the sign-in page. Every permission is enforced again by the API.
+    if (options?.staffOnly && !isStaff(account.role)) {
+      await client.logout();
+      throw new Error("This account has no staff access. Choose User to sign in.");
+    }
+    setUser(account);
+  }, []);
+
+  const register = useCallback(async (details: client.Registration) => {
+    await client.register(details);
     setUser(await client.api.get<User>("/auth/me"));
   }, []);
 
@@ -40,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear();
   }, [queryClient]);
 
-  const value = useMemo(() => ({ user, loading, signIn, signOut }), [user, loading, signIn, signOut]);
+  const value = useMemo(() => ({ user, loading, signIn, register, signOut }), [user, loading, signIn, register, signOut]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

@@ -93,6 +93,18 @@ export async function login(email: string, password: string): Promise<void> {
   accessToken = body.access_token;
 }
 
+export interface Registration {
+  email: string;
+  full_name: string;
+  password: string;
+  admin_code?: string;
+}
+
+export async function register(details: Registration): Promise<void> {
+  const body = await api.post<{ access_token: string }>("/auth/register", details);
+  accessToken = body.access_token;
+}
+
 export async function logout(): Promise<void> {
   await api.post("/auth/logout").catch(() => undefined);
   accessToken = null;

@@ -34,7 +34,8 @@ function stubServer(user: typeof requester, loggedIn = true, notifications: { li
     "fetch",
     vi.fn(async (url: string) => {
       if (url.endsWith("/auth/refresh")) return loggedIn ? json(200, { access_token: "t" }) : json(401, { detail: "none" });
-      if (url.endsWith("/auth/login")) return json(200, { access_token: "t" });
+      if (url.endsWith("/auth/login") || url.endsWith("/auth/register")) return json(200, { access_token: "t" });
+      if (url.endsWith("/auth/logout")) return new Response(null, { status: 204 });
       if (url.endsWith("/auth/me")) return json(200, user);
       if (url.includes("/notifications/summary")) return notifications.summary ?? json(200, noNotifications);
       if (url.includes("/notifications")) return json(200, notifications.list ?? []);
@@ -100,6 +101,90 @@ describe("App", () => {
     stubServer(requester);
     renderApp();
     expect(await screen.findByRole("group", { name: "Colour theme" })).toBeInTheDocument();
+  });
+});
+
+describe("Sign-in page", () => {
+  const registerCall = () => vi.mocked(fetch).mock.calls.find(([url]) => String(url).endsWith("/auth/register"));
+
+  async function openCreateAccount(audience: RegExp) {
+    stubServer(requester, false);
+    renderApp();
+    await userEvent.click(await screen.findByRole("radio", { name: audience }));
+    await userEvent.click(screen.getByRole("radio", { name: "Create account" }));
+  }
+
+  async function fillAccount(confirm = "a-long-enough-password") {
+    await userEvent.type(screen.getByLabelText("Full name"), "Shatakshi Shukla");
+    await userEvent.type(screen.getByLabelText("Email"), "new@test.io");
+    await userEvent.type(screen.getByLabelText(/^Password/), "a-long-enough-password");
+    await userEvent.type(screen.getByLabelText("Confirm password"), confirm);
+  }
+
+  it("offers both account types and both actions", async () => {
+    stubServer(requester, false);
+    renderApp();
+    expect(await screen.findByRole("radio", { name: /^User/ })).toBeChecked();
+    expect(screen.getByRole("radio", { name: /^Admin/ })).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "Sign in" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Create account" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Colour theme" })).toBeInTheDocument();
+  });
+
+  it("creates a user account and opens the app", async () => {
+    await openCreateAccount(/^User/);
+    expect(screen.queryByLabelText(/^Admin access code/)).not.toBeInTheDocument();
+    await fillAccount();
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
+    expect(await screen.findByRole("heading", { name: "Incidents" })).toBeInTheDocument();
+    expect(JSON.parse(String(registerCall()?.[1]?.body))).toEqual({ email: "new@test.io", full_name: "Shatakshi Shukla", password: "a-long-enough-password" });
+  });
+
+  it("sends the access code for an admin account", async () => {
+    await openCreateAccount(/^Admin/);
+    await fillAccount();
+    await userEvent.type(screen.getByLabelText(/^Admin access code/), "the-secret-code");
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
+    await screen.findByRole("heading", { name: "Incidents" });
+    expect(JSON.parse(String(registerCall()?.[1]?.body)).admin_code).toBe("the-secret-code");
+  });
+
+  it("stops before sending when the passwords differ", async () => {
+    await openCreateAccount(/^User/);
+    await fillAccount("something-else-entirely");
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("do not match");
+    expect(registerCall()).toBeUndefined();
+  });
+
+  it("keeps a requester out of the admin sign-in", async () => {
+    stubServer(requester, false);
+    renderApp();
+    await userEvent.click(await screen.findByRole("radio", { name: /^Admin/ }));
+    await userEvent.type(screen.getByLabelText("Email"), "user@test.io");
+    await userEvent.type(screen.getByLabelText("Password"), "correct-horse-battery");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("no staff access");
+    expect(screen.queryByRole("heading", { name: "Incidents" })).not.toBeInTheDocument();
+  });
+
+  it("lets staff use the admin sign-in", async () => {
+    stubServer(manager, false);
+    renderApp();
+    await userEvent.click(await screen.findByRole("radio", { name: /^Admin/ }));
+    await userEvent.type(screen.getByLabelText("Email"), "manager@test.io");
+    await userEvent.type(screen.getByLabelText("Password"), "correct-horse-battery");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByRole("heading", { name: "Incidents" })).toBeInTheDocument();
+  });
+
+  it("reveals the password on request", async () => {
+    stubServer(requester, false);
+    renderApp();
+    const field = await screen.findByLabelText("Password");
+    expect(field).toHaveAttribute("type", "password");
+    await userEvent.click(screen.getByRole("button", { name: "Show password" }));
+    expect(field).toHaveAttribute("type", "text");
   });
 });
 

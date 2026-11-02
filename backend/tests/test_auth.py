@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import jwt
+import pytest
 
 from app.core.config import get_settings
 from app.core.security import hash_password, verify_password
@@ -30,6 +31,82 @@ def test_wrong_password_and_unknown_email_look_identical(client, api):
 def test_failed_login_is_audited(client, api, db):
     _login(client, api, password="wrong-password-here")
     assert db.query(AuditLog).filter_by(action="auth.login_failed").count() == 1
+
+
+NEW_ACCOUNT = {"email": "New.Person@test.io", "full_name": "New Person", "password": "a-long-enough-password"}
+ADMIN_CODE = "correct-horse-access-code"
+
+
+def _register(client, api, **overrides):
+    return client.post(f"{api}/auth/register", json={**NEW_ACCOUNT, **overrides})
+
+
+def _bearer(response):
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
+def test_registering_creates_a_requester_and_signs_them_in(client, api, db):
+    response = _register(client, api)
+    assert response.status_code == 201
+    assert "httponly" in response.headers["set-cookie"].lower()
+    me = client.get(f"{api}/auth/me", headers=_bearer(response)).json()
+    assert me["role"] == "requester"
+    assert me["email"] == "new.person@test.io"
+    assert db.query(AuditLog).filter_by(action="auth.registered").count() == 1
+
+
+def test_a_new_account_can_sign_in_with_its_password(client, api):
+    _register(client, api)
+    assert _login(client, api, "new.person@test.io", NEW_ACCOUNT["password"]).status_code == 200
+
+
+def test_the_role_cannot_be_chosen_when_registering(client, api):
+    response = _register(client, api, role="admin", team_id=1, is_active=True)
+    assert client.get(f"{api}/auth/me", headers=_bearer(response)).json()["role"] == "requester"
+
+
+def test_an_email_can_only_be_registered_once(client, api):
+    _register(client, api)
+    assert _register(client, api, email="NEW.PERSON@test.io").status_code == 409
+
+
+def test_an_existing_account_cannot_be_taken_over_by_registering(client, api):
+    assert _register(client, api, email="user@test.io").status_code == 409
+    assert _login(client, api).status_code == 200
+    assert _login(client, api, password=NEW_ACCOUNT["password"]).status_code == 401
+
+
+def test_a_short_password_is_refused(client, api):
+    assert _register(client, api, password="too-short").status_code == 422
+
+
+def test_the_right_code_creates_an_admin(client, api, monkeypatch):
+    monkeypatch.setattr(get_settings(), "admin_signup_code", ADMIN_CODE)
+    response = _register(client, api, admin_code=ADMIN_CODE)
+    assert client.get(f"{api}/auth/me", headers=_bearer(response)).json()["role"] == "admin"
+
+
+def test_a_wrong_code_creates_nothing_and_is_audited(client, api, db, monkeypatch):
+    monkeypatch.setattr(get_settings(), "admin_signup_code", ADMIN_CODE)
+    assert _register(client, api, admin_code="a-wrong-guess").status_code == 403
+    assert _login(client, api, "new.person@test.io", NEW_ACCOUNT["password"]).status_code == 401
+    assert db.query(AuditLog).filter_by(action="auth.admin_signup_denied").count() == 1
+
+
+@pytest.mark.parametrize("code", ["", "anything", "None"])
+def test_no_admin_can_be_created_when_no_code_is_configured(client, api, monkeypatch, code):
+    monkeypatch.setattr(get_settings(), "admin_signup_code", None)
+    assert _register(client, api, admin_code=code).status_code == 403
+
+
+def test_an_empty_configured_code_does_not_match_an_empty_guess(client, api, monkeypatch):
+    monkeypatch.setattr(get_settings(), "admin_signup_code", "")
+    assert _register(client, api, admin_code="").status_code == 403
+
+
+def test_a_non_ascii_code_is_refused_cleanly(client, api, monkeypatch):
+    monkeypatch.setattr(get_settings(), "admin_signup_code", ADMIN_CODE)
+    assert _register(client, api, admin_code="pässwörd").status_code == 403
 
 
 def test_me_requires_a_token(client, api):
