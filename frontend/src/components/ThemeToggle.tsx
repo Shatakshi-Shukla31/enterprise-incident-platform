@@ -3,8 +3,8 @@ import { useTheme, type Theme } from "../lib/theme";
 
 const ICON_PROPS = {
   "aria-hidden": true,
-  width: 14,
-  height: 14,
+  width: 16,
+  height: 16,
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
@@ -38,19 +38,20 @@ const OPTIONS: { value: Theme; label: string; icon: ReactNode }[] = [
 export function ThemeToggle() {
   const [theme, setTheme] = useTheme();
   return (
-    <div role="group" aria-label="Colour theme" className="inline-flex gap-0.5 rounded-md bg-sunken p-0.5 md:flex">
+    <div role="group" aria-label="Colour theme" className="inline-flex gap-0.5 rounded-md bg-sunken p-0.5">
       {OPTIONS.map((option) => (
         <button
           key={option.value}
           type="button"
+          title={option.label}
           aria-pressed={theme === option.value}
           onClick={() => setTheme(option.value)}
-          className={`inline-flex items-center justify-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors md:flex-1 ${
+          className={`inline-flex items-center justify-center rounded p-1.5 transition-colors ${
             theme === option.value ? "bg-surface text-ink shadow-sm" : "text-ink-2 hover:text-ink"
           }`}
         >
           {option.icon}
-          <span className="sr-only md:not-sr-only">{option.label}</span>
+          <span className="sr-only">{option.label}</span>
         </button>
       ))}
     </div>
