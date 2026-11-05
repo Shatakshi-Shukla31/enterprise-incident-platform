@@ -49,6 +49,18 @@ def test_site_serves_files_and_app_routes(site):
     assert site.get("/").headers["content-security-policy"] == CONTENT_SECURITY_POLICY
 
 
+def test_the_page_is_rechecked_and_built_files_are_kept(site):
+    assert site.get("/").headers["cache-control"] == "no-cache"
+    assert site.get("/incidents/42").headers["cache-control"] == "no-cache"
+    assert "immutable" in site.get("/assets/main.js").headers["cache-control"]
+
+
+def test_a_file_removed_by_a_deploy_is_missing_rather_than_the_page(site):
+    response = site.get("/assets/old-build.js")
+    assert response.status_code == 404
+    assert "the app" not in response.text
+
+
 def test_site_does_not_hide_the_routes_before_it(site):
     assert site.get("/health").json() == {"status": "ok"}
 

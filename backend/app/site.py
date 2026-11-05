@@ -12,6 +12,11 @@ CONTENT_SECURITY_POLICY = (
     "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
     "object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
 )
+# Built files carry a content hash in their name, so they never change. Everything else,
+# above all the page itself, must be checked on every visit or a browser keeps an old
+# page that points at files the next deploy removed.
+IMMUTABLE = "public, max-age=31536000, immutable"
+REVALIDATE = "no-cache"
 
 
 def mount_site(app: FastAPI, root: Path) -> None:
@@ -31,6 +36,10 @@ def mount_site(app: FastAPI, root: Path) -> None:
             raise HTTPException(status.HTTP_404_NOT_FOUND)
         candidate = (root / path).resolve()
         if path and candidate.is_relative_to(root) and candidate.is_file():
-            return FileResponse(candidate)
+            cache = IMMUTABLE if path.startswith("assets/") else REVALIDATE
+            return FileResponse(candidate, headers={"Cache-Control": cache})
+        if path.startswith("assets/"):
+            # Answering with the page would make the browser reject it as a script.
+            raise HTTPException(status.HTTP_404_NOT_FOUND)
         # Unknown paths are routes inside the single-page app.
-        return FileResponse(root / "index.html")
+        return FileResponse(root / "index.html", headers={"Cache-Control": REVALIDATE})
