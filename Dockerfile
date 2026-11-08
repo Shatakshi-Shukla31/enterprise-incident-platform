@@ -1,6 +1,6 @@
 # One container for small free hosts: the website, API and scheduled jobs in a single
 # process, with no Redis. docker-compose.yml is the full deployment.
-FROM node:22-alpine AS site
+FROM node:25-alpine AS site
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./
 RUN npm ci
