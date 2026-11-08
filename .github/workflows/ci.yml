@@ -30,7 +30,7 @@ jobs:
       TEST_DATABASE_URL: postgresql+psycopg://postgres:ci-only-password@localhost:5432/incidents_test
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
           cache: pip
@@ -87,7 +87,7 @@ jobs:
       RATE_LIMIT_REGISTER: 200/minute
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
           cache: pip
