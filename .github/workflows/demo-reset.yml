@@ -41,7 +41,7 @@ jobs:
         working-directory: .
       - uses: actions/checkout@v4
         if: steps.secrets.outputs.ready == 'true'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         if: steps.secrets.outputs.ready == 'true'
         with:
           python-version: "3.14"
