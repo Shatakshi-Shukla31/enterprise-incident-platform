@@ -39,7 +39,7 @@ jobs:
             echo "::notice::Add DEMO_DATABASE_URL and DEMO_PASSWORD as repository secrets to enable the weekly reset."
           fi
         working-directory: .
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.secrets.outputs.ready == 'true'
       - uses: actions/setup-python@v5
         if: steps.secrets.outputs.ready == 'true'
