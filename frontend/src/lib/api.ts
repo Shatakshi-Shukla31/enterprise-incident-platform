@@ -105,6 +105,11 @@ export async function register(details: Registration): Promise<void> {
   accessToken = body.access_token;
 }
 
+export async function demoLogin(): Promise<void> {
+  const body = await api.post<{ access_token: string }>("/auth/demo");
+  accessToken = body.access_token;
+}
+
 export async function logout(): Promise<void> {
   await api.post("/auth/logout").catch(() => undefined);
   accessToken = null;

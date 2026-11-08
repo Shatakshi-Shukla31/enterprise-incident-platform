@@ -59,6 +59,35 @@ def team_manager_ids(db: Session, team_id: int | None) -> list[int]:
     return list(db.scalars(stmt))
 
 
+def copy_busiest_manager_inbox(db: Session, user: User) -> int:
+    """Give a new account a copy of the busiest manager's alerts. The shared demo account
+    uses it, so a visitor sees real alerts from the first visit rather than an empty page."""
+    source = db.scalar(
+        select(Notification.user_id)
+        .join(User, User.id == Notification.user_id)
+        .where(User.role == Role.MANAGER, User.id != user.id)
+        .group_by(Notification.user_id)
+        .order_by(func.count().desc())
+        .limit(1)
+    )
+    if source is None:
+        return 0
+    originals = db.scalars(select(Notification).where(Notification.user_id == source)).all()
+    db.add_all(
+        Notification(
+            user_id=user.id,
+            incident_id=item.incident_id,
+            type=item.type,
+            title=item.title,
+            body=item.body,
+            dedupe_key=item.dedupe_key,
+            created_at=item.created_at,
+        )
+        for item in originals
+    )
+    return len(originals)
+
+
 def list_for_user(db: Session, user: User, unread_only: bool, offset: int, limit: int) -> list[Notification]:
     stmt = select(Notification).where(Notification.user_id == user.id)
     if unread_only:

@@ -109,6 +109,82 @@ def test_a_non_ascii_code_is_refused_cleanly(client, api, monkeypatch):
     assert _register(client, api, admin_code="pässwörd").status_code == 403
 
 
+def _demo(client, api):
+    response = client.post(f"{api}/auth/demo")
+    assert response.status_code == 200, response.text
+    return _bearer(response)
+
+
+def test_the_demo_opens_a_read_only_manager_without_a_password(client, api, db):
+    headers = _demo(client, api)
+    me = client.get(f"{api}/auth/me", headers=headers).json()
+    assert me["role"] == "manager"
+    assert me["is_demo"] is True
+    assert client.get(f"{api}/analytics/dashboard", headers=headers).status_code == 200
+    assert db.query(AuditLog).filter_by(action="auth.demo_login").count() == 1
+
+
+def test_the_demo_starts_with_a_copy_of_a_managers_alerts(client, api, actors, make_incident):
+    make_incident(impact="high", urgency="high")  # a new P1 alerts the team's managers
+    manager_total = client.get(f"{api}/notifications/summary", headers=actors.manager).json()["total"]
+    assert manager_total > 0
+    demo_total = client.get(f"{api}/notifications/summary", headers=_demo(client, api)).json()["total"]
+    assert demo_total == manager_total
+    again = client.get(f"{api}/notifications/summary", headers=_demo(client, api)).json()["total"]
+    assert again == demo_total, "copied once, when the account is created"
+
+
+def test_the_demo_reuses_one_account(client, api):
+    first = client.get(f"{api}/auth/me", headers=_demo(client, api)).json()["id"]
+    second = client.get(f"{api}/auth/me", headers=_demo(client, api)).json()["id"]
+    assert first == second
+
+
+def test_ordinary_accounts_are_not_marked_as_demo(client, api, actors):
+    assert client.get(f"{api}/auth/me", headers=actors.manager).json()["is_demo"] is False
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "body"),
+    [
+        ("post", "/incidents", {"title": "Demo change", "description": "Should never be saved", "impact": "low", "urgency": "low"}),
+        ("post", "/auth/me/password", {"current_password": "anything", "new_password": "a-long-enough-password"}),
+        ("post", "/knowledge/documents", {"source_ref": "KB-X", "title": "Demo article", "content": "Should never be indexed.", "access_level": "public"}),
+        ("post", "/teams", {"name": "Demo team"}),
+        ("post", "/remediation/requests/1/decision", {"approve": True}),
+    ],
+)
+def test_the_demo_cannot_change_anything(client, api, method, path, body):
+    response = getattr(client, method)(f"{api}{path}", json=body, headers=_demo(client, api))
+    assert response.status_code == 403
+    assert "read-only" in response.json()["detail"]
+
+
+def test_the_demo_cannot_change_an_existing_ticket(client, api, make_incident):
+    incident = make_incident()
+    headers = _demo(client, api)
+    for path, body in (("/comments", {"body": "hello"}), ("/escalate", {"reason": "testing it"}), ("/status", {"status": "resolved"})):
+        assert client.post(f"{api}/incidents/{incident['id']}{path}", json=body, headers=headers).status_code == 403
+
+
+def test_the_demo_can_use_the_assistant_and_its_own_alerts(client, api, make_incident):
+    incident = make_incident()
+    headers = _demo(client, api)
+    assert client.post(f"{api}/ai/chat", json={"message": "my vpn keeps dropping"}, headers=headers).status_code == 200
+    assert client.post(f"{api}/incidents/{incident['id']}/ai/suggest", headers=headers).status_code == 200
+    assert client.post(f"{api}/knowledge/search", json={"query": "vpn"}, headers=headers).status_code == 200
+    assert client.post(f"{api}/notifications/read-all", headers=headers).status_code == 204
+
+
+def test_nobody_can_register_the_demo_address(client, api):
+    assert _register(client, api, email=get_settings().demo_account_email).status_code == 409
+
+
+def test_the_demo_can_be_switched_off(client, api, monkeypatch):
+    monkeypatch.setattr(get_settings(), "demo_login_enabled", False)
+    assert client.post(f"{api}/auth/demo").status_code == 404
+
+
 def test_me_requires_a_token(client, api):
     assert client.get(f"{api}/auth/me").status_code == 401
 

@@ -59,6 +59,11 @@ export function Layout() {
       </aside>
       <main className="min-w-0 p-4 md:p-6">
         <div className="mx-auto max-w-6xl">
+          {user?.is_demo && (
+            <p role="note" className="mb-4 rounded-md border border-line bg-accent-soft px-3 py-2 text-sm text-ink">
+              You're exploring a read-only demo with made-up data. To raise your own tickets, sign out and create an account.
+            </p>
+          )}
           <Outlet />
         </div>
       </main>

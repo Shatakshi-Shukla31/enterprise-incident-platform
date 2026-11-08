@@ -8,7 +8,7 @@ import pandas as pd
 
 from app.core.config import get_settings
 from app.ml import registry
-from app.ml.features import SLA_FEATURES
+from app.ml.features import EXPLANATION_GROUPS, SLA_FEATURES
 
 logger = logging.getLogger(__name__)
 
@@ -77,3 +77,23 @@ def predict_sla_risk(features: dict[str, object]) -> Prediction | None:
     frame = pd.DataFrame([features], columns=SLA_FEATURES)
     risk = float(loaded.model.predict_proba(frame)[0, 1])
     return Prediction("breach_risk", round(risk, 4), loaded.version, [])
+
+
+def explain_sla_risk(features: dict[str, object], top: int = 3) -> list[dict]:
+    """What moved a score: each group of facts is swapped for a typical ticket's values and
+    the ticket is scored again. A positive effect means that group raised the risk. This
+    works for any model, and explains the model's behaviour, not the real world's."""
+    loaded = _get("sla_risk")
+    reference = loaded.metadata.get("reference") if loaded else None
+    if not reference:
+        return []
+    rows = [features] + [
+        {**features, **{column: reference[column] for column in columns}} for columns in EXPLANATION_GROUPS.values()
+    ]
+    risks = loaded.model.predict_proba(pd.DataFrame(rows, columns=SLA_FEATURES))[:, 1]
+    effects = [
+        {"factor": name, "effect": round(float(risks[0] - risks[index]), 4)}
+        for index, name in enumerate(EXPLANATION_GROUPS, start=1)
+    ]
+    effects = [item for item in effects if abs(item["effect"]) >= 0.01]
+    return sorted(effects, key=lambda item: abs(item["effect"]), reverse=True)[:top]

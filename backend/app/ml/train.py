@@ -35,6 +35,7 @@ from app.ml.features import (
     NUMERIC_FEATURES,
     SLA_FEATURES,
     build_sla_frame,
+    typical_ticket,
 )
 from app.ml.routing import RuleRouter
 from app.ml.synthetic import generate
@@ -388,6 +389,7 @@ def train_sla(history: pd.DataFrame, data_hash: str, seed: int, root: Path) -> d
         "validation_comparison": comparison,
         "metrics": metrics,
         "features": SLA_FEATURES,
+        "reference": typical_ticket(X_train),
         "excluded_as_leakage": sorted(FORBIDDEN_FEATURES),
         "data": {
             "sha256": data_hash,

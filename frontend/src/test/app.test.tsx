@@ -34,7 +34,7 @@ function stubServer(user: typeof requester, loggedIn = true, notifications: { li
     "fetch",
     vi.fn(async (url: string) => {
       if (url.endsWith("/auth/refresh")) return loggedIn ? json(200, { access_token: "t" }) : json(401, { detail: "none" });
-      if (url.endsWith("/auth/login") || url.endsWith("/auth/register")) return json(200, { access_token: "t" });
+      if (url.endsWith("/auth/login") || url.endsWith("/auth/register") || url.endsWith("/auth/demo")) return json(200, { access_token: "t" });
       if (url.endsWith("/auth/logout")) return new Response(null, { status: 204 });
       if (url.endsWith("/auth/me")) return json(200, user);
       if (url.includes("/notifications/summary")) return notifications.summary ?? json(200, noNotifications);
@@ -176,6 +176,22 @@ describe("Sign-in page", () => {
     await userEvent.type(screen.getByLabelText("Password"), "correct-horse-battery");
     await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
     expect(await screen.findByRole("heading", { name: "Incidents" })).toBeInTheDocument();
+  });
+
+  it("opens the read-only demo without a password", async () => {
+    stubServer({ ...manager, is_demo: true } as typeof requester, false);
+    renderApp();
+    await userEvent.click(await screen.findByRole("button", { name: "Explore the demo" }));
+    expect(await screen.findByRole("heading", { name: "Incidents" })).toBeInTheDocument();
+    expect(screen.getByRole("note")).toHaveTextContent("read-only demo");
+    expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+  });
+
+  it("shows no demo notice to ordinary accounts", async () => {
+    stubServer(manager);
+    renderApp();
+    await screen.findByRole("heading", { name: "Incidents" });
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
   });
 
   it("reveals the password on request", async () => {

@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     demo_password: str | None = None
     # Lets someone create an admin account from the sign-in page. Unset means nobody can.
     admin_signup_code: str | None = None
+    # A shared, read-only manager account that the sign-in page can open without a password.
+    demo_login_enabled: bool = True
+    demo_account_email: str = "visitor@example.com"
 
     artifacts_dir: Path = BACKEND_DIR / "artifacts"
     knowledge_dir: Path = BACKEND_DIR / "data" / "knowledge"

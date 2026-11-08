@@ -117,6 +117,7 @@ def score_sla_risk(db: Session, incident: Incident, historical_backlog: tuple[in
     )
     try:
         result = inference.predict_sla_risk(features)
+        factors = inference.explain_sla_risk(features) if result else []
     except Exception:
         logger.exception("SLA scoring failed", extra={"incident_id": incident.id})
         return
@@ -131,6 +132,6 @@ def score_sla_risk(db: Session, incident: Incident, historical_backlog: tuple[in
             model_version=result.version,
             value="breach_risk",
             confidence=result.confidence,
-            details={"features": features},
+            details={"features": features, "factors": factors},
         )
     )

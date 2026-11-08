@@ -1,8 +1,9 @@
+import re
 from collections.abc import Callable
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, Query, status
+from fastapi import Depends, HTTPException, Query, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -23,7 +24,19 @@ _UNAUTHORIZED = HTTPException(
 )
 
 
-def get_current_user(db: DB, token: Annotated[str, Depends(oauth2_scheme)]) -> User:
+# The demo visitor may look at everything and ask the assistant, and change nothing else.
+# Checked here, where every signed-in request passes, so a new route is read-only by default.
+# Matched on the request path: FastAPI records mounted routes without their prefix.
+_DEMO_WRITES = re.compile(
+    rf"^{re.escape(get_settings().api_prefix)}/("
+    r"ai/chat|ai/recommendations/\d+/feedback|knowledge/search"
+    r"|incidents/\d+/ai/suggest|notifications/read-all|notifications/\d+/read"
+    r")$"
+)
+_READS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+def get_current_user(request: Request, db: DB, token: Annotated[str, Depends(oauth2_scheme)]) -> User:
     try:
         payload = decode_access_token(token)
         user_id = int(payload["sub"])
@@ -33,6 +46,15 @@ def get_current_user(db: DB, token: Annotated[str, Depends(oauth2_scheme)]) -> U
     user = db.get(User, user_id)
     if user is None or not user.is_active:
         raise _UNAUTHORIZED
+    if (
+        request.method not in _READS
+        and user.email == get_settings().demo_account_email
+        and not _DEMO_WRITES.match(request.url.path)
+    ):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "The demo account is read-only. Sign out and create your own account to make changes.",
+        )
     return user
 
 

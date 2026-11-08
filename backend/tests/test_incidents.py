@@ -259,6 +259,8 @@ def test_new_incident_is_triaged_by_trained_models(make_incident, client, api, a
     assert kinds == {"category", "routing", "sla_risk"}
     staff = client.get(f"{api}/incidents/{incident['id']}", headers=actors.admin).json()
     assert 0 <= staff["sla_risk_score"] <= 1
+    risk = db.scalar(select(Prediction).where(Prediction.incident_id == incident["id"], Prediction.kind == "sla_risk"))
+    assert isinstance(risk.details["factors"], list)
 
 
 def test_manual_category_correction_is_tracked(client, api, actors, make_incident, db, trained_models):

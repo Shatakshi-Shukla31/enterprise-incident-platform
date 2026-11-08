@@ -10,6 +10,7 @@ export interface User {
   role: Role;
   team_id: number | null;
   is_active: boolean;
+  is_demo?: boolean;
 }
 
 export interface Team {
@@ -77,10 +78,19 @@ export interface Prediction {
   model_version: string;
   value: string;
   confidence: number;
-  details: { alternatives?: { label: string; confidence: number }[] };
+  details: {
+    alternatives?: { label: string; confidence: number }[];
+    features?: Record<string, string | number>;
+    factors?: RiskFactor[];
+  };
   accepted: boolean | null;
   corrected_value: string | null;
   created_at: string;
+}
+
+export interface RiskFactor {
+  factor: string;
+  effect: number;
 }
 
 export interface Citation {

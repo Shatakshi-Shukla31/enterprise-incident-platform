@@ -189,6 +189,37 @@ def test_sla_risk_responds_to_inputs(trained_models):
     assert medium.confidence > low.confidence
 
 
+def test_the_typical_ticket_is_a_consistent_real_combination(trained_models):
+    reference = inference._get("sla_risk").metadata["reference"]
+    assert set(reference) == set(SLA_FEATURES)
+    assert reference["is_weekend"] == int(reference["day_of_week"] >= 5)
+
+
+def test_explanations_name_the_weekend_for_a_weekend_p3(trained_models):
+    weekend_p3 = incident_features(
+        category="network",
+        priority="P3",
+        impact="medium",
+        urgency="medium",
+        channel="portal",
+        team="Network Operations",
+        created_at=datetime(2026, 3, 8, 18, tzinfo=UTC),  # a Sunday evening
+        description_length=100,
+        team_backlog=5,
+        team_backlog_high=0,
+    )
+    factors = inference.explain_sla_risk(weekend_p3)
+    assert 1 <= len(factors) <= 3
+    assert factors[0]["factor"] == "timing" and factors[0]["effect"] > 0
+    sizes = [abs(item["effect"]) for item in factors]
+    assert sizes == sorted(sizes, reverse=True)
+
+
+def test_a_typical_ticket_has_nothing_to_explain(trained_models):
+    reference = inference._get("sla_risk").metadata["reference"]
+    assert inference.explain_sla_risk(dict(reference)) == []
+
+
 def test_tampered_artifacts_are_refused(trained_models, tmp_path):
     version = registry.save_model(tmp_path, "category", {"model": 1}, {"data": {}})
     path = tmp_path / "category" / version / "model.joblib"

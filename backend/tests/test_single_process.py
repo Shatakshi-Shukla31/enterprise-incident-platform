@@ -74,6 +74,14 @@ def test_site_never_serves_a_file_outside_its_folder(site):
     assert "private" not in site.get("/..%2fsecret.txt").text
 
 
+def test_the_demo_reset_refuses_to_run_without_confirmation(monkeypatch):
+    from scripts import reset_demo
+
+    monkeypatch.setattr("sys.argv", ["reset_demo"])
+    with pytest.raises(SystemExit, match="--yes"):
+        reset_demo.main()
+
+
 def _fake_jobs(monkeypatch, log, fail=()):
     def task(name):
         def apply(throw):

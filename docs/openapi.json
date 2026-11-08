@@ -88,6 +88,27 @@
         }
       }
     },
+    "/api/v1/auth/demo": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Demo",
+        "operationId": "demo_api_v1_auth_demo_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/refresh": {
       "post": {
         "tags": [
@@ -4245,6 +4266,11 @@
           "is_active": {
             "type": "boolean",
             "title": "Is Active"
+          },
+          "is_demo": {
+            "type": "boolean",
+            "title": "Is Demo",
+            "default": false
           }
         },
         "type": "object",

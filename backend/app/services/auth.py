@@ -1,4 +1,5 @@
 import hmac
+import secrets
 import uuid
 from datetime import timedelta
 
@@ -18,7 +19,7 @@ from app.core.security import (
 )
 from app.db.base import utcnow
 from app.models import RefreshToken, User
-from app.services import audit
+from app.services import audit, notifications
 from app.services.errors import Conflict, Forbidden, ServiceError
 
 
@@ -31,9 +32,40 @@ def _is_admin_code(code: str) -> bool:
     return bool(expected) and hmac.compare_digest(code.encode(), expected.encode())
 
 
+def is_demo(user: User) -> bool:
+    return user.email == get_settings().demo_account_email
+
+
+def demo_account(db: Session) -> User:
+    """The shared read-only visitor. It is created on first use with a password nobody
+    knows, so the demo button is the only way in, and a database reset needs no extra step."""
+    email = get_settings().demo_account_email
+    user = db.scalar(select(User).where(User.email == email))
+    if user is None:
+        user = User(
+            email=email,
+            full_name="Demo visitor",
+            password_hash=hash_password(secrets.token_urlsafe(32)),
+            role=Role.MANAGER,
+        )
+        db.add(user)
+        try:
+            db.flush()
+            notifications.copy_busiest_manager_inbox(db, user)
+        except IntegrityError:
+            db.rollback()  # another visitor created it at the same moment
+            user = db.scalar(select(User).where(User.email == email))
+    if user is None or not user.is_active:
+        raise InvalidCredentials("The demo account is unavailable")
+    audit.record(db, "auth.demo_login", user)
+    return user
+
+
 def register(db: Session, email: str, full_name: str, password: str, admin_code: str | None = None) -> User:
     """Self-service sign-up creates a requester. Only the secret access code creates an
     admin, so a public site never lets a stranger hand themselves control of it."""
+    if email.lower() == get_settings().demo_account_email:
+        raise Conflict("Email already registered")
     if admin_code is not None and not _is_admin_code(admin_code):
         audit.record(db, "auth.admin_signup_denied", email=email[:255])
         db.commit()

@@ -57,6 +57,7 @@ class UserOut(ORMModel):
     role: Role
     team_id: int | None
     is_active: bool
+    is_demo: bool = False
 
 
 class UserCreate(BaseModel):

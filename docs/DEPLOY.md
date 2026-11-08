@@ -34,6 +34,20 @@ The full deployment in `docker-compose.yml` needs about 750 MB or more, while a 
 - **Anyone with the password can change the demo data.** It holds only synthetic data. Keep the password out of public pages and share it directly.
 - **Anyone can create a User account.** New accounts can raise tickets and use the assistant, and see only their own tickets and public articles.
 - **Creating an Admin account needs the access code.** Render generates `ADMIN_SIGNUP_CODE`, and you can read it on the service's Environment page. Keep it private, because it grants full control of the site.
+- **Explore the demo needs no password.** It opens a shared manager account, `visitor@example.com`, which can view everything and use the assistant but cannot change anything. The server enforces this on every request, not just in the page. Set `DEMO_LOGIN_ENABLED=false` to remove it.
+
+## Weekly reset
+
+`.github/workflows/demo-reset.yml` rebuilds the demo database every Monday at 02:00 in India: it drops every table, recreates the schema and loads fresh synthetic data. That keeps the tickets current and clears anything visitors added, including accounts they created. It runs on GitHub's machines, so the free server does no extra work.
+
+It needs two repository secrets, added under **Settings**, **Secrets and variables**, **Actions**:
+
+| Secret | Value |
+| --- | --- |
+| `DEMO_DATABASE_URL` | The Neon connection string. Neon shows it under **Connect** |
+| `DEMO_PASSWORD` | The password the demo accounts should have |
+
+Without them the job does nothing. To run it at once, open **Actions**, then **Reset demo**, then **Run workflow**. GitHub pauses scheduled workflows in repositories with no activity for 60 days, and one push restarts them.
 
 ## Verified and not verified
 

@@ -8,6 +8,7 @@ interface AuthState {
   loading: boolean;
   signIn: (email: string, password: string, options?: { staffOnly?: boolean }) => Promise<void>;
   register: (details: client.Registration) => Promise<void>;
+  exploreDemo: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -45,6 +46,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(await client.api.get<User>("/auth/me"));
   }, []);
 
+  const exploreDemo = useCallback(async () => {
+    await client.demoLogin();
+    setUser(await client.api.get<User>("/auth/me"));
+  }, []);
+
   const signOut = useCallback(async () => {
     await client.logout();
     setUser(null);
@@ -52,7 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear();
   }, [queryClient]);
 
-  const value = useMemo(() => ({ user, loading, signIn, register, signOut }), [user, loading, signIn, register, signOut]);
+  const value = useMemo(
+    () => ({ user, loading, signIn, register, exploreDemo, signOut }),
+    [user, loading, signIn, register, exploreDemo, signOut],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

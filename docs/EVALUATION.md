@@ -115,6 +115,12 @@ Calibration was expected to help and did not. Sigmoid (Brier 0.14222) and isoton
 
 The default favours precision to avoid alert fatigue and catches only 1 in 10 breaches. Lowering `SLA_RISK_ALERT_THRESHOLD` trades the other way.
 
+### Explaining a score
+
+Each ticket shows what moved its score. For each group of facts, such as when a ticket was raised or its priority, the ticket is scored again with that group set to the training data's typical ticket, and the difference is shown in percentage points. Facts that belong together move together, so the comparison never describes an impossible ticket. The method works with any model, and it explains the model's behaviour, not the real world's.
+
+It makes the simulator's strongest rule visible. P3 work does not start until the next working day, while its 24-hour clock keeps running, so in the simulated history 96.8% of P3 tickets raised at a weekend breach, against 33.1% on weekdays. Those tickets are 2.2% of the history, and the 0.70 alert flags 2.7% of test tickets, so the high precision above probably comes mostly from that one rule. The rule was left in place: changing the generator until the scores look better would be tuning the data, not the model.
+
 ## Real-data benchmark
 
 The log is an event stream, so careless use leaks badly:

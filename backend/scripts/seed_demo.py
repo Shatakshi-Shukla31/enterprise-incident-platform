@@ -198,11 +198,7 @@ def seed_incidents(db: Session, count: int, seed: int = 2026) -> int:
     return len(history)
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--incidents", type=int, default=800)
-    args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+def load(incidents: int) -> None:
     password = get_settings().demo_password
     if not password or len(password) < 12:
         raise SystemExit("Set DEMO_PASSWORD (12 characters or more) before seeding")
@@ -210,8 +206,16 @@ def main() -> None:
     with new_session() as db:
         seed_reference_data(db, password)
         logger.info("Knowledge base: %s", ingest.ingest_directory(db))
-        logger.info("Incidents created: %d", seed_incidents(db, args.incidents))
+        logger.info("Incidents created: %d", seed_incidents(db, incidents))
         logger.info("SLA check: %s", sla.run_sla_check(db))
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--incidents", type=int, default=800)
+    args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    load(args.incidents)
 
 
 if __name__ == "__main__":

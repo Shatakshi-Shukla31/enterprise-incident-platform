@@ -11,3 +11,4 @@ dev
 **/.coverage
 backend/tests
 backend/artifacts/*
+e2e

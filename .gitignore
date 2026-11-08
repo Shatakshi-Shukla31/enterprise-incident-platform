@@ -18,3 +18,7 @@ celerybeat-schedule*
 dev/pglite/data/
 dev/pglite/package-lock.json
 .vscode/
+
+# Browser test output
+e2e/playwright-report/
+e2e/test-results/

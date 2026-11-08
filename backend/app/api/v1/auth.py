@@ -50,6 +50,17 @@ def register(request: Request, response: Response, payload: Registration, db: DB
     return TokenOut(access_token=access, expires_in=expires_in)
 
 
+@router.post("/demo", response_model=TokenOut)
+@limiter.limit(settings.rate_limit_login)
+def demo(request: Request, response: Response, db: DB) -> TokenOut:
+    if not settings.demo_login_enabled:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "The demo is switched off on this site")
+    user = auth_service.demo_account(db)
+    access, expires_in, refresh = auth_service.issue_tokens(db, user)
+    _set_refresh_cookie(response, refresh)
+    return TokenOut(access_token=access, expires_in=expires_in)
+
+
 @router.post("/refresh", response_model=TokenOut)
 @limiter.limit(settings.rate_limit_refresh)
 def refresh(
@@ -72,8 +83,8 @@ def logout(response: Response, db: DB, refresh_token: Annotated[str | None, Cook
 
 
 @router.get("/me", response_model=UserOut)
-def me(user: CurrentUser) -> object:
-    return user
+def me(user: CurrentUser) -> UserOut:
+    return UserOut.model_validate(user).model_copy(update={"is_demo": auth_service.is_demo(user)})
 
 
 @router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT)

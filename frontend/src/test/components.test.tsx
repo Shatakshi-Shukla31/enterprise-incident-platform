@@ -6,6 +6,7 @@ import { BarList, ChartCard, LineChart, StackedBarList, niceMax } from "../compo
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Pagination, PriorityBadge, RiskLabel } from "../components/ui";
 import { dueIn, humanize, percent } from "../lib/format";
+import { describeFactor, formatEffect } from "../lib/risk";
 import type { Citation } from "../lib/types";
 
 const citation: Citation = {
@@ -181,6 +182,23 @@ describe("badges and pagination", () => {
     await userEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(onChange).toHaveBeenCalledWith(2);
     expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
+  });
+});
+
+describe("risk explanations", () => {
+  const features = { day_of_week: 6, is_after_hours: 1, priority: "P3", team_backlog: 5, category: "network", description_length: 57 };
+
+  it("names each group of facts with the ticket's own values", () => {
+    expect(describeFactor("timing", features)).toBe("Raised on Sunday, outside office hours");
+    expect(describeFactor("priority", features)).toBe("Priority P3");
+    expect(describeFactor("queue", features)).toBe("5 open tickets in the team's queue");
+    expect(describeFactor("category", features)).toBe("Category: Network");
+    expect(describeFactor("description", features)).toBe("A 57-character description");
+  });
+
+  it("shows direction and size in points", () => {
+    expect(formatEffect(0.384)).toBe("+38 pts");
+    expect(formatEffect(-0.06)).toBe("−6 pts");
   });
 });
 

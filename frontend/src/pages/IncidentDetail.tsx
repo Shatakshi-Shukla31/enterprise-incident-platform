@@ -6,6 +6,7 @@ import { AnswerText, Citations, FeedbackButtons } from "../components/Answer";
 import { Button, Card, ErrorNote, Field, Loading, PriorityBadge, RiskLabel, StatusBadge, inputClass } from "../components/ui";
 import { api } from "../lib/api";
 import { dueIn, formatDate, humanize, percent } from "../lib/format";
+import { describeFactor, formatEffect } from "../lib/risk";
 import type { Answer, AuditEntry, Comment, Incident, Page, Prediction, Remediation, Runbook, Status, Team, User } from "../lib/types";
 
 const NEXT_STATUS: Record<Status, Status[]> = {
@@ -289,6 +290,19 @@ function TriagePanel({ incident, id }: { incident: Incident; id: string }) {
           <span className="font-medium text-ink-2">SLA breach risk</span>
           <RiskLabel score={incident.sla_risk_score} />
         </div>
+        {!!risk?.details.factors?.length && (
+          <div>
+            <p className="text-xs text-ink-3">What moved the score, compared with a typical ticket</p>
+            <ul className="mt-1 space-y-0.5">
+              {risk.details.factors.map((item) => (
+                <li key={item.factor} className="flex justify-between gap-2 text-ink-2">
+                  <span>{describeFactor(item.factor, risk.details.features)}</span>
+                  <span className="tabular whitespace-nowrap text-ink">{formatEffect(item.effect)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {risk && <p className="tabular text-xs text-ink-3">Model version {risk.model_version}</p>}
       </div>
     </Card>

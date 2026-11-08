@@ -1,0 +1,55 @@
+name: Reset demo
+
+# Rebuilds the hosted demo database every week, so its tickets never go stale and nothing a
+# visitor typed lasts more than a week. Needs two repository secrets: DEMO_DATABASE_URL
+# (the Neon connection string) and DEMO_PASSWORD. Without them the job does nothing.
+on:
+  schedule:
+    - cron: "30 20 * * 0" # Sunday 20:30 UTC, which is Monday 02:00 in India
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-reset
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL }}
+      DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
+      # Settings require these. Nothing here signs tokens or serves requests.
+      JWT_SECRET: reset-job-placeholder-that-signs-nothing
+      DB_DISABLE_PREPARED_STATEMENTS: "true"
+      SINGLE_PROCESS: "true"
+    steps:
+      - name: Check the secrets are set
+        id: secrets
+        run: |
+          if [ -n "$DATABASE_URL" ] && [ -n "$DEMO_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Add DEMO_DATABASE_URL and DEMO_PASSWORD as repository secrets to enable the weekly reset."
+          fi
+        working-directory: .
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.ready == 'true'
+      - uses: actions/setup-python@v5
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - if: steps.secrets.outputs.ready == 'true'
+        run: pip install -r requirements.txt
+      - if: steps.secrets.outputs.ready == 'true'
+        run: python -m app.ml.train
+      - if: steps.secrets.outputs.ready == 'true'
+        run: python -m scripts.reset_demo --yes

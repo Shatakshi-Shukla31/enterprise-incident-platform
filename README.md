@@ -1,10 +1,15 @@
 # Enterprise Incident Platform
 
+[![CI](https://github.com/Shatakshi-Shukla31/enterprise-incident-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Shatakshi-Shukla31/enterprise-incident-platform/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Shatakshi-Shukla31/enterprise-incident-platform/actions/workflows/codeql.yml/badge.svg)](https://github.com/Shatakshi-Shukla31/enterprise-incident-platform/actions/workflows/codeql.yml)
+
 An incident management system with ML triage and evidence-grounded troubleshooting. It covers the whole ticket lifecycle: raising, routing, SLA tracking, escalation, resolution, and approval-gated remediation. Models help at each stage, and people can override every one of them.
 
 All demo data is synthetic. The SLA method is also benchmarked on a public, real incident log, because a score on self-generated data proves very little.
 
-**Live demo:** <https://incident-platform-ql4e.onrender.com>. It runs on free hosting and sleeps when idle, so the first visit can take a while to load.
+**Live demo:** <https://incident-platform-ql4e.onrender.com>. Click **Explore the demo** to look around as a manager with no account. The demo account is read-only, and the server enforces that on every request. It runs on free hosting and sleeps when idle, so the first visit can take about a minute.
+
+![A short tour: sign-in, incidents, dashboard, a ticket with its explained risk and cited fix, the assistant, notifications and dark mode](docs/screenshots/tour.gif)
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
@@ -20,7 +25,7 @@ All demo data is synthetic. The SLA method is also benchmarked on a public, real
 
 - **Incident management:** role-based access, assignment, an ITIL priority matrix, SLA clocks that pause on hold, escalation, filtering, and an append-only audit log enforced by a database trigger.
 - **ML triage:** predicts the category and recommends a team, each with a confidence score, and records every human correction.
-- **SLA risk:** estimates breach probability using only what is known when a ticket opens.
+- **SLA risk:** estimates breach probability using only what is known when a ticket opens, and shows which facts moved each score.
 - **RAG troubleshooting:** retrieves knowledge articles and resolved incidents with pgvector, then answers with citations or declines when the evidence is weak.
 - **Support assistant:** conversational troubleshooting, related incidents and suggested runbooks, limited to documents the user may read.
 - **Automation:** Celery jobs for SLA checks, notifications, knowledge indexing and auto-close, plus remediation that needs a second person's approval.
@@ -101,7 +106,7 @@ On Windows without Docker, follow [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md). Th
 
 ### Demo accounts
 
-All accounts share the `DEMO_PASSWORD` you set in `.env`. Anyone can also create a User account on the sign-in page. Creating an Admin account there needs `ADMIN_SIGNUP_CODE`, and is switched off while that is empty.
+All accounts share the `DEMO_PASSWORD` you set in `.env`. Anyone can also create a User account on the sign-in page. Creating an Admin account there needs `ADMIN_SIGNUP_CODE`, and is switched off while that is empty. **Explore the demo** needs no password and opens a read-only manager account.
 
 | Email | Role | Sees |
 | --- | --- | --- |
@@ -130,19 +135,16 @@ LLM_API_KEY=                      # for hosted services
 cd backend && pytest --cov=app    # needs TEST_DATABASE_URL
 cd frontend && npm test
 python -m scripts.smoke_test      # against a running stack, from backend/
+cd e2e && npx playwright test     # against a running instance, see e2e/README.md
 ```
 
 | Layer | Result |
 | --- | --- |
-| Backend tests, against real PostgreSQL + pgvector | 245 passed, 90% coverage |
-| Frontend tests | 43 passed |
-| Browser checks in headless Edge: theme, notification charts, assistant, phone width, production CSP | 41 checks passed |
-| Single-process mode in headless Edge, with production settings and no Redis or Celery | 10 checks passed |
-| Sign-in page in headless Edge: both account types, sign-up rules, phone width | 21 checks passed |
-| GitHub Actions: backend on PostgreSQL 17, frontend, and both Docker images | All 3 jobs passed |
+| Backend tests, against real PostgreSQL + pgvector | 264 passed, 90% coverage |
+| Frontend tests | 47 passed |
+| Browser tests in `e2e/`: sign-in rules, the read-only demo, explained risk, charts, phone width, and an accessibility scan in both themes | 16 passed locally in Edge |
 | Live site on Render and Neon, in headless Edge | 16 checks passed |
 | Live smoke test: real API, Celery worker and scheduler | 30 checks passed, before the theme, chart and knowledge changes |
-| Browser journey in headless Edge, including phone width and dark mode | 21 checks passed, before the same changes |
 
 ## Project layout
 
@@ -159,6 +161,7 @@ backend/
   scripts/        Demo seeding, smoke test, container bootstrap
   tests/
 frontend/src/     React pages, components and API client
+e2e/              Playwright browser tests, including an accessibility scan
 dev/              Local PostgreSQL and Redis stand-ins for machines without Docker
 docs/             Architecture, API, evaluation, setup and generated metrics
 ```

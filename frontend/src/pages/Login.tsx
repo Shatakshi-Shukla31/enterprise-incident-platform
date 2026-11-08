@@ -114,7 +114,7 @@ function Story() {
 }
 
 export function LoginPage() {
-  const { signIn, register } = useAuth();
+  const { signIn, register, exploreDemo } = useAuth();
   const [audience, setAudience] = useState<Audience>("user");
   const [mode, setMode] = useState<Mode>("signin");
   const [form, setForm] = useState(EMPTY);
@@ -146,6 +146,18 @@ export function LoginPage() {
       } else {
         await signIn(form.email, form.password, { staffOnly: admin });
       }
+    } catch (caught) {
+      setError(caught);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function explore() {
+    setBusy(true);
+    setError(null);
+    try {
+      await exploreDemo();
     } catch (caught) {
       setError(caught);
     } finally {
@@ -220,7 +232,18 @@ export function LoginPage() {
           <Button type="submit" className="w-full" disabled={busy}>
             {busy ? busyLabel : idleLabel}
           </Button>
-          <p className="text-center text-xs text-ink-3">Demo system with made-up data. Please use a password you don't use anywhere else.</p>
+          <div aria-hidden className="flex items-center gap-3 text-xs text-ink-3">
+            <span className="h-px flex-1 bg-line" />
+            or
+            <span className="h-px flex-1 bg-line" />
+          </div>
+          <Button variant="secondary" className="w-full" disabled={busy} onClick={() => void explore()}>
+            Explore the demo
+          </Button>
+          <p className="text-center text-xs text-ink-3">
+            No account needed. You look around as a manager, and nothing can be changed. All data is made up, so please
+            use a password you don't use anywhere else.
+          </p>
         </form>
       </main>
     </div>

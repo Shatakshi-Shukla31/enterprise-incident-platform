@@ -37,6 +37,7 @@ The response includes the derived priority and SLA targets, plus the predicted c
 | --- | --- | --- | --- |
 | POST | `/auth/login` | Sign in with form fields. Sets the refresh cookie. | Public |
 | POST | `/auth/register` | Create a requester and sign in. A valid `admin_code` creates an admin. | Public, 5 a minute |
+| POST | `/auth/demo` | Sign in as the shared read-only demo manager. Off when `DEMO_LOGIN_ENABLED=false`. | Public, 10 a minute |
 | POST | `/auth/refresh` | Rotate the refresh token | Cookie |
 | POST | `/auth/logout` | End the session | Cookie |
 | GET | `/auth/me` | Current user | Any |

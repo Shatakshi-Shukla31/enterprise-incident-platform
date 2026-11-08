@@ -17,6 +17,19 @@ NUMERIC_FEATURES = [
 ]
 SLA_FEATURES = CATEGORICAL_FEATURES + NUMERIC_FEATURES
 
+# Facts that only make sense together move together when a score is explained, so the
+# comparison never describes an impossible ticket, such as a Sunday that is a working day.
+EXPLANATION_GROUPS = {
+    "timing": ["hour", "day_of_week", "is_weekend", "is_after_hours"],
+    "priority": ["priority", "impact", "urgency"],
+    "queue": ["team_backlog", "team_backlog_high"],
+    "category": ["category"],
+    "team": ["team"],
+    "channel": ["channel"],
+    "description": ["description_length"],
+}
+_MEDIAN_GROUPS = frozenset({"queue", "description"})
+
 # Outcomes and values only known after the incident progresses. Using any of these would
 # inflate offline metrics and fail in production. Enforced at train time and by a test.
 FORBIDDEN_FEATURES = frozenset(
@@ -72,6 +85,25 @@ def incident_features(
         "team_backlog": team_backlog,
         "team_backlog_high": team_backlog_high,
     }
+
+
+def typical_ticket(frame: pd.DataFrame) -> dict[str, object]:
+    """What explanations compare against: the most common combination in each group, taken
+    from real rows so it is always consistent, and medians for counts."""
+    reference: dict[str, object] = {}
+    for name, columns in EXPLANATION_GROUPS.items():
+        if name in _MEDIAN_GROUPS:
+            reference.update({column: int(frame[column].median()) for column in columns})
+            continue
+        most_common = frame[columns].value_counts().idxmax()
+        values = most_common if isinstance(most_common, tuple) else (most_common,)
+        reference.update({column: _plain(value) for column, value in zip(columns, values, strict=True)})
+    return reference
+
+
+def _plain(value: object) -> object:
+    """A numpy scalar as a Python value, so the reference can be saved as JSON."""
+    return value.item() if hasattr(value, "item") else value
 
 
 def build_sla_frame(history: pd.DataFrame) -> pd.DataFrame:
