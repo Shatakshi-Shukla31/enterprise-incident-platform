@@ -18,10 +18,13 @@ test("the demo can browse and ask, but not change anything", async ({ page }) =>
   await expect(page.getByRole("alert")).toContainText("read-only");
 
   await page.getByRole("link", { name: "Assistant", exact: true }).click();
-  await page.getByLabel("Message").fill("how long do we have to fix a P2 ticket");
-  // Waiting on the request itself tells a request that was never sent from a slow or failed one.
+  // Page changes render in a transition, so the old page can still be showing. Its description
+  // hint mentions "error messages", so the label match must be exact and the new page present.
+  await expect(page.getByRole("button", { name: "New conversation" })).toBeVisible();
+  const box = page.getByLabel("Message", { exact: true });
+  await box.fill("how long do we have to fix a P2 ticket");
   const reply = page.waitForResponse((response) => response.url().includes("/ai/chat"), { timeout: 90_000 });
-  await page.getByLabel("Message").press("Enter");
+  await box.press("Enter");
   const response = await reply;
   expect(response.status(), (await response.text()).slice(0, 300)).toBe(200);
   await expect(page.locator("main")).toContainText("KB-1901");
