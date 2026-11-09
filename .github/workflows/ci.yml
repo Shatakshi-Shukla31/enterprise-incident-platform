@@ -112,8 +112,14 @@ jobs:
         working-directory: backend
         run: |
           nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8010 > "$RUNNER_TEMP/server.log" 2>&1 &
-          for attempt in $(seq 1 60); do curl -fs http://127.0.0.1:8010/ready && exit 0; sleep 2; done
-          cat "$RUNNER_TEMP/server.log"; exit 1
+          for attempt in $(seq 1 60); do curl -fs http://127.0.0.1:8010/ready && break; sleep 2; done
+          curl -fs http://127.0.0.1:8010/ready || { cat "$RUNNER_TEMP/server.log"; exit 1; }
+      - name: Time one assistant answer through the API
+        run: |
+          token=$(curl -fs -X POST http://127.0.0.1:8010/api/v1/auth/demo | python3 -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
+          result=$(curl -s -o /tmp/chat.json -w '%{http_code} in %{time_total}s' -m 120 -X POST -H "Authorization: Bearer $token" \
+            -H "Content-Type: application/json" -d '{"message": "how long do we have to fix a P2 ticket"}' http://127.0.0.1:8010/api/v1/ai/chat)
+          echo "::notice title=assistant through the API::$result $(head -c 250 /tmp/chat.json)"
       - run: npm ci && npx playwright install --with-deps chromium
         working-directory: e2e
       - run: npx playwright test
@@ -126,8 +132,11 @@ jobs:
       - name: Report server errors
         if: failure()
         run: |
-          grep -E '"level": "(ERROR|WARNING)"|Traceback|"status": (429|5[0-9][0-9])' "$RUNNER_TEMP/server.log" | tail -n 12 | while IFS= read -r line; do
+          grep -E '"level": "(ERROR|WARNING)"|Traceback|"status": (429|5[0-9][0-9])' "$RUNNER_TEMP/server.log" | tail -n 8 | while IFS= read -r line; do
             echo "::warning title=server log::${line:0:400}"
+          done
+          grep -E 'ai/chat|Traceback|Error' "$RUNNER_TEMP/server.log" | tail -n 8 | while IFS= read -r line; do
+            echo "::notice title=chat in server log::${line:0:400}"
           done
           cp "$RUNNER_TEMP/server.log" e2e/playwright-report/ 2>/dev/null || true
       - if: failure()
