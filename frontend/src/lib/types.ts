@@ -126,6 +126,14 @@ export interface Conversation {
   created_at: string;
 }
 
+export interface AttachmentInfo {
+  id: number;
+  kind: "image" | "audio" | "text" | "document";
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+}
+
 export interface ConversationDetail extends Conversation {
   messages: {
     role: string;
@@ -133,6 +141,7 @@ export interface ConversationDetail extends Conversation {
     created_at: string;
     citations: Citation[];
     insufficient_evidence: boolean;
+    attachments?: AttachmentInfo[];
   }[];
 }
 

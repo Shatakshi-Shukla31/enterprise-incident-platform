@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from app.api.rate_limit import limiter
 
 CONTENT_SECURITY_POLICY = (
-    "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+    "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; "
     "object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
 )
 # Built files carry a content hash in their name, so they never change. Everything else,

@@ -123,6 +123,8 @@ The ingest response reports `flagged_chunks`, the number quarantined as possible
 | PATCH | `/users/{id}` | Change role, team or status | Admin |
 | GET | `/teams` | List | Any |
 | POST | `/teams` | Create | Manager |
+| POST | `/ai/attachments` | Upload one file for the next assistant message: a photo, voice note, PDF, or text or log file of up to 5 MB. The type is read from the bytes. | Any, 20 a minute |
+| GET | `/ai/attachments/{id}` | Download your own attachment | Owner only |
 | GET | `/notifications` | Your notifications | Any |
 | GET | `/notifications/summary` | Unread and read counts by type and by ticket status | Any |
 | POST | `/notifications/{id}/read`, `/notifications/read-all` | Mark as read | Any |

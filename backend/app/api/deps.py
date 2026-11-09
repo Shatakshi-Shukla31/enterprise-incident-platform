@@ -29,7 +29,7 @@ _UNAUTHORIZED = HTTPException(
 # Matched on the request path: FastAPI records mounted routes without their prefix.
 _DEMO_WRITES = re.compile(
     rf"^{re.escape(get_settings().api_prefix)}/("
-    r"ai/chat|ai/recommendations/\d+/feedback|knowledge/search"
+    r"ai/chat|ai/attachments|ai/recommendations/\d+/feedback|knowledge/search"
     r"|incidents/\d+/ai/suggest|notifications/read-all|notifications/\d+/read"
     r")$"
 )

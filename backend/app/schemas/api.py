@@ -289,10 +289,19 @@ class AnswerOut(BaseModel):
     suggested_actions: list[SuggestedAction] = []
 
 
+class AttachmentOut(ORMModel):
+    id: int
+    kind: str
+    filename: str
+    content_type: str
+    size_bytes: int
+
+
 class ChatRequest(BaseModel):
     message: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=2000)]
     conversation_id: int | None = None
     incident_id: int | None = None
+    attachment_ids: list[int] = Field(default_factory=list, max_length=3)
 
 
 class ChatResponse(AnswerOut):
@@ -304,6 +313,7 @@ class ChatMessageOut(BaseModel):
     content: str
     created_at: datetime
     citations: list[Citation] = []
+    attachments: list[AttachmentOut] = []
     insufficient_evidence: bool = False
 
 

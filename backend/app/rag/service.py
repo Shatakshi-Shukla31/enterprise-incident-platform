@@ -11,6 +11,7 @@ from app.core.enums import DocumentSource
 from app.models import AIConversation, AIMessage, AIRecommendation, Incident, Runbook, User
 from app.rag import retriever
 from app.rag.generator import GeneratedAnswer, generate_answer
+from app.services import attachments
 from app.services.access import is_staff
 from app.services.errors import NotFound
 from app.services.incidents import get_incident
@@ -144,7 +145,10 @@ def _chat_evidence(
 def _conversation(db: Session, user: User, conversation_id: int) -> AIConversation:
     conversation = db.scalar(
         select(AIConversation)
-        .options(selectinload(AIConversation.messages).selectinload(AIMessage.recommendation))
+        .options(
+            selectinload(AIConversation.messages).selectinload(AIMessage.recommendation),
+            selectinload(AIConversation.messages).selectinload(AIMessage.attachments),
+        )
         .where(AIConversation.id == conversation_id, AIConversation.user_id == user.id)
     )
     if conversation is None:
@@ -152,8 +156,16 @@ def _conversation(db: Session, user: User, conversation_id: int) -> AIConversati
     return conversation
 
 
-def chat(db: Session, user: User, message: str, conversation_id: int | None, incident_id: int | None) -> dict:
+def chat(
+    db: Session,
+    user: User,
+    message: str,
+    conversation_id: int | None,
+    incident_id: int | None,
+    attachment_ids: list[int] | None = None,
+) -> dict:
     started = time.perf_counter()
+    files = attachments.unsent(db, user, attachment_ids or [])
     incident: Incident | None = get_incident(db, user, incident_id) if incident_id else None
     if conversation_id is not None:
         conversation = _conversation(db, user, conversation_id)
@@ -166,13 +178,19 @@ def chat(db: Session, user: User, message: str, conversation_id: int | None, inc
 
     history = [(item.role, item.content) for item in conversation.messages]
     previous_user = [content for role, content in history if role == "user"]
-    retrieval_query, chunks = _chat_evidence(db, user, message, previous_user, incident)
+    # Error lines from an attached log describe the problem better than most summaries do.
+    file_text = attachments.evidence(files)
+    question = f"{message}\n{file_text}" if file_text else message
+    retrieval_query, chunks = _chat_evidence(db, user, question, previous_user, incident)
     db.commit()
     result = generate_answer(retrieval_query, chunks, history)
     result.latency_ms = int((time.perf_counter() - started) * 1000)
 
     recommendation = _store(db, user, message, result, incident.id if incident else None)
-    db.add(AIMessage(conversation_id=conversation.id, role="user", content=message))
+    asked = AIMessage(conversation_id=conversation.id, role="user", content=message)
+    db.add(asked)
+    db.flush()
+    attachments.link(files, asked)
     db.add(
         AIMessage(
             conversation_id=conversation.id,
@@ -212,6 +230,10 @@ def conversation_detail(db: Session, user: User, conversation_id: int) -> dict:
                 "created_at": message.created_at,
                 "citations": message.recommendation.citations if message.recommendation else [],
                 "insufficient_evidence": bool(message.recommendation and message.recommendation.insufficient_evidence),
+                "attachments": [
+                    {field: getattr(item, field) for field in ("id", "kind", "filename", "content_type", "size_bytes")}
+                    for item in message.attachments
+                ],
             }
             for message in conversation.messages
         ],

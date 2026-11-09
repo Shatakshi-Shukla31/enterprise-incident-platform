@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     # Every page load refreshes, and many users can share one address.
     rate_limit_refresh: str = "120/minute"
     rate_limit_ai: str = "30/minute"
+    rate_limit_upload: str = "20/minute"
 
     redis_url: str = "redis://localhost:6379/0"
     celery_task_always_eager: bool = False

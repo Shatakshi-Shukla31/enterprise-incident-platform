@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Request, status
+from urllib.parse import quote
+
+from fastapi import APIRouter, HTTPException, Request, Response, UploadFile, status
 from sqlalchemy import select
 
 from app.api.deps import DB, AdminUser, CurrentUser, ManagerUser, Paging, StaffUser
@@ -8,6 +10,7 @@ from app.models import AIRecommendation, KnowledgeDocument, Team
 from app.rag import ingest, retriever
 from app.rag import service as rag_service
 from app.schemas.api import (
+    AttachmentOut,
     ChatRequest,
     ChatResponse,
     ConversationDetail,
@@ -19,7 +22,7 @@ from app.schemas.api import (
     SearchHit,
     SearchRequest,
 )
-from app.services import access, audit
+from app.services import access, attachments, audit
 
 router = APIRouter(tags=["ai"])
 settings = get_settings()
@@ -28,7 +31,33 @@ settings = get_settings()
 @router.post("/ai/chat", response_model=ChatResponse)
 @limiter.limit(settings.rate_limit_ai)
 def chat(request: Request, payload: ChatRequest, user: CurrentUser, db: DB) -> dict:
-    return rag_service.chat(db, user, payload.message, payload.conversation_id, payload.incident_id)
+    return rag_service.chat(
+        db, user, payload.message, payload.conversation_id, payload.incident_id, payload.attachment_ids
+    )
+
+
+@router.post("/ai/attachments", response_model=AttachmentOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit(settings.rate_limit_upload)
+def upload_attachment(request: Request, file: UploadFile, user: CurrentUser, db: DB) -> object:
+    # Read one byte past the limit, so an oversized file is refused without reading it all.
+    data = file.file.read(attachments.MAX_BYTES + 1)
+    return attachments.save(db, user, file.filename or "attachment", data)
+
+
+@router.get("/ai/attachments/{attachment_id}")
+def download_attachment(attachment_id: int, user: CurrentUser, db: DB) -> Response:
+    item = attachments.for_download(db, user, attachment_id)
+    # Photos and voice notes play in the page. Anything else downloads, so a browser never
+    # renders it as a page from this site.
+    disposition = "inline" if item.kind in ("image", "audio") else "attachment"
+    return Response(
+        item.data,
+        media_type=item.content_type,
+        headers={
+            "Content-Disposition": f"{disposition}; filename*=UTF-8''{quote(item.filename)}",
+            "Cache-Control": "private, max-age=3600",
+        },
+    )
 
 
 @router.get("/ai/conversations", response_model=list[ConversationOut])

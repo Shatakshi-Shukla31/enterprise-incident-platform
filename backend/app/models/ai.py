@@ -1,5 +1,5 @@
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -107,3 +107,21 @@ class AIMessage(Base, CreatedAtMixin):
 
     conversation: Mapped[AIConversation] = relationship(back_populates="messages")
     recommendation: Mapped[AIRecommendation | None] = relationship()
+    attachments: Mapped[list["Attachment"]] = relationship(order_by="Attachment.id")
+
+
+class Attachment(Base, CreatedAtMixin):
+    """A file someone added to an assistant message. Stored in the database, because a free
+    host's disk is wiped at every restart. The bytes load only when asked for."""
+
+    __tablename__ = "attachments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    message_id: Mapped[int | None] = mapped_column(ForeignKey("ai_messages.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(16))
+    filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(100))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    data: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)
+    extracted_text: Mapped[str | None] = mapped_column(Text)

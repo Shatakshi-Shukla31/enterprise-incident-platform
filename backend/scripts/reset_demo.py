@@ -8,11 +8,9 @@ only at a database that holds the demo and nothing else.
 import argparse
 import logging
 
-from alembic.config import Config
 from sqlalchemy import text
 
-from alembic import command
-from app.core.config import BACKEND_DIR
+from app.db.migrations import upgrade_to_head
 from app.db.session import get_engine
 from scripts import seed_demo
 
@@ -36,9 +34,7 @@ def main() -> None:
     get_engine().dispose()
     logger.info("Schema dropped")
 
-    config = Config(str(BACKEND_DIR / "alembic.ini"))
-    config.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
-    command.upgrade(config, "head")
+    upgrade_to_head()
     seed_demo.load(args.incidents)
     logger.info("Demo rebuilt")
 

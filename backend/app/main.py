@@ -19,6 +19,7 @@ from app.api.rate_limit import limiter
 from app.api.v1 import ai, auth, incidents, ops, users
 from app.core.config import get_settings
 from app.core.logging import configure_logging, request_id_var
+from app.db.migrations import upgrade_to_head
 from app.db.session import get_engine
 from app.ml import inference
 from app.services.errors import ServiceError
@@ -34,6 +35,8 @@ LATENCY = Histogram("http_request_seconds", "HTTP request latency", ["route"])
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    if settings.single_process:
+        upgrade_to_head(configure_logging=False)
     configure_logging(settings.log_level)
     stop_scheduler = threading.Event()
     if settings.single_process:

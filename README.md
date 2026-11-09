@@ -27,7 +27,7 @@ All demo data is synthetic. The SLA method is also benchmarked on a public, real
 - **ML triage:** predicts the category and recommends a team, each with a confidence score, and records every human correction.
 - **SLA risk:** estimates breach probability using only what is known when a ticket opens, and shows which facts moved each score.
 - **RAG troubleshooting:** retrieves knowledge articles and resolved incidents with pgvector, then answers with citations or declines when the evidence is weak.
-- **Support assistant:** conversational troubleshooting, related incidents and suggested runbooks, limited to documents the user may read.
+- **Support assistant:** conversational troubleshooting, related incidents and suggested runbooks, limited to documents the user may read. People can attach photos, voice notes, PDFs and text or log files, and the error lines of an attached log feed the search.
 - **Automation:** Celery jobs for SLA checks, notifications, knowledge indexing and auto-close, plus remediation that needs a second person's approval.
 - **Notifications:** personal alerts with unread and read counts charted by type and by ticket status.
 - **Analytics:** volume, SLA compliance, resolution time, live model acceptance and AI usage, all computed from stored records.
@@ -140,9 +140,9 @@ cd e2e && npx playwright test     # against a running instance, see e2e/README.m
 
 | Layer | Result |
 | --- | --- |
-| Backend tests, against real PostgreSQL + pgvector | 264 passed, 90% coverage |
-| Frontend tests | 47 passed |
-| Browser tests in `e2e/`: sign-in rules, the read-only demo, explained risk, charts, phone width, and an accessibility scan in both themes | 16 passed, locally in Edge and in CI |
+| Backend tests, against real PostgreSQL + pgvector | 284 passed, 90% coverage |
+| Frontend tests | 54 passed |
+| Browser tests in `e2e/`: sign-in rules, the read-only demo, explained risk, charts, attachments including a recorded voice note, phone width, and an accessibility scan in both themes | 20 passed locally in Edge |
 | GitHub Actions on every push: backend, frontend, browser tests, the full Docker Compose stack, and CodeQL | All passed |
 | Live site on Render and Neon, in headless Edge | 16 checks passed |
 | Live smoke test: real API, Celery worker and scheduler | 30 checks passed, before the theme, chart and knowledge changes |
@@ -184,6 +184,7 @@ docs/             Architecture, API, evaluation, setup and generated metrics
 - **Remediation handlers are simulators.** They validate the target and record what would happen. Nothing touches real infrastructure.
 - **Text models have only seen synthetic tickets.** Expect lower scores on real ones, and retrain before relying on them.
 - **The evidence threshold has a thin margin.** The weakest answerable query scored 0.244 and the strongest unanswerable one 0.366, so the two groups overlap and some good questions are refused.
+- **The assistant cannot see photos or hear voice notes.** They are saved with the conversation. It reads text and log files only. Turning speech into text uses the browser's own service where one exists, so Chrome and Edge send the audio to Google or Microsoft for that step.
 - **Injection screening is pattern based.** It catches common attacks, and output validation limits the damage, but a determined attacker may word around it.
 - **Follow-up detection is a heuristic.** It looks for words like "that" and "else" and checks whether the message finds strong evidence alone. Its 0.55 cut-off comes from 18 hand-checked messages, so an unrelated question can still borrow earlier context.
 - **SLA clocks run on wall-clock time** rather than business hours.

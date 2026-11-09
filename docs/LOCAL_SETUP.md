@@ -119,7 +119,7 @@ Never point `TEST_DATABASE_URL` at a database you care about, because the suite 
 | Symptom | Cause and fix |
 | --- | --- |
 | `DLL load failed while importing onnxruntime_pybind11_state` or `Could not find module lib_lightgbm.dll` | The Visual C++ Redistributable is missing. Install it. |
-| `An Application Control policy has blocked this file` | Windows Smart App Control refused a newly installed DLL. During development this happened once, then the same file loaded normally. Retry once. Do not turn Smart App Control off for this project: it cannot be turned back on without resetting Windows. If it persists, use Docker or WSL. |
+| `An Application Control policy has blocked this file` | Windows Smart App Control refused a compiled library file. During development this happened a few times, and each time the same file loaded on the next try. Retry once. If SQLAlchemy's `_cy` files keep being refused, move the `*_cy*.pyd` files out of `site-packages/sqlalchemy`, and SQLAlchemy uses its own Python versions of them. Do not turn Smart App Control off for this project: it cannot be turned back on without resetting Windows. If it persists, use Docker or WSL. |
 | `npm.ps1 cannot be loaded because running scripts is disabled` | PowerShell blocks `npm`, which is a script. Use `npm.cmd` as shown in this guide. |
 | `prepared statement "_pg3_0" already exists` | Add `DB_DISABLE_PREPARED_STATEMENTS=true`, which PGlite and PgBouncer both need. |
 | Tests hang | A session is holding a transaction open across an API call, which blocks on PGlite. Run with `--timeout=120` to see which test. |

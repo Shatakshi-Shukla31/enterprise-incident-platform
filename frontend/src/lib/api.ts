@@ -84,6 +84,21 @@ export const api = {
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };
 
+/** Sends one file as a form. The browser sets the multipart boundary itself. */
+export function uploadFile<T>(path: string, file: Blob, name: string): Promise<T> {
+  const form = new FormData();
+  form.append("file", file, name);
+  return request<T>(path, { method: "POST", body: form });
+}
+
+/** Fetches a private file with the session token, for showing it from memory. */
+export async function fetchBlob(path: string): Promise<Blob> {
+  let response = await send(path, {});
+  if (response.status === 401 && (await refreshSession())) response = await send(path, {});
+  if (!response.ok) throw new ApiError(response.status, `Request failed (${response.status})`);
+  return response.blob();
+}
+
 export async function login(email: string, password: string): Promise<void> {
   const body = await request<{ access_token: string }>("/auth/login", {
     method: "POST",

@@ -8,7 +8,8 @@ from app.core.config import get_settings
 from app.db.base import Base
 
 config = context.config
-if config.config_file_name is not None:
+# The app runs migrations in-process at start-up, and must keep the logging it set up.
+if config.config_file_name is not None and config.attributes.get("configure_logging", True):
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata

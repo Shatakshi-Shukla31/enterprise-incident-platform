@@ -10,6 +10,7 @@ The full deployment in `docker-compose.yml` needs about 750 MB or more, while a 
 | Background work | Celery worker and Redis | Runs inline in the request |
 | Scheduled jobs | Celery beat | A thread in the API process |
 | Rate limits | Shared in Redis | In memory |
+| Database migrations | The bootstrap job | Applied by the app at start-up |
 
 ## Steps
 
