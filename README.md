@@ -142,7 +142,8 @@ cd e2e && npx playwright test     # against a running instance, see e2e/README.m
 | --- | --- |
 | Backend tests, against real PostgreSQL + pgvector | 264 passed, 90% coverage |
 | Frontend tests | 47 passed |
-| Browser tests in `e2e/`: sign-in rules, the read-only demo, explained risk, charts, phone width, and an accessibility scan in both themes | 16 passed locally in Edge |
+| Browser tests in `e2e/`: sign-in rules, the read-only demo, explained risk, charts, phone width, and an accessibility scan in both themes | 16 passed, locally in Edge and in CI |
+| GitHub Actions on every push: backend, frontend, browser tests, the full Docker Compose stack, and CodeQL | All passed |
 | Live site on Render and Neon, in headless Edge | 16 checks passed |
 | Live smoke test: real API, Celery worker and scheduler | 30 checks passed, before the theme, chart and knowledge changes |
 
@@ -178,7 +179,7 @@ docs/             Architecture, API, evaluation, setup and generated metrics
 ## Limitations
 
 - **The real-LLM path was never run against a live model.** Provider requests and parsing are tested against mocked HTTP, and all reported RAG numbers use the extractive provider. Its 1.0 grounding score is true by construction, because it copies source sentences.
-- **The full Docker Compose stack was never started.** CI builds both images and validates the Compose file, and the single-container image runs on Render, but `docker compose up` itself has not been run.
+- **The full Docker Compose stack is only smoke-tested.** CI starts it, signs in through nginx, reads incidents and checks that the worker and scheduler are running, but it has never run under real load.
 - **Concurrency is less proven than the rest.** Local verification used PGlite, which serialises transactions. CI and the live site use real PostgreSQL, but `SKIP LOCKED` behaviour under heavy parallel load has not been exercised.
 - **Remediation handlers are simulators.** They validate the target and record what would happen. Nothing touches real infrastructure.
 - **Text models have only seen synthetic tickets.** Expect lower scores on real ones, and retrain before relying on them.
