@@ -122,8 +122,14 @@ jobs:
           E2E_BASE_URL: http://localhost:8010
           E2E_DEMO_PASSWORD: e2e-only-demo-password
           E2E_ADMIN_CODE: e2e-only-admin-access-code
-      - if: failure()
-        run: cp "$RUNNER_TEMP/server.log" e2e/playwright-report/ 2>/dev/null || true
+      # Annotations are public, unlike logs and artifacts, so the evidence is readable by anyone.
+      - name: Report server errors
+        if: failure()
+        run: |
+          grep -E '"level": "(ERROR|WARNING)"|Traceback|"status": (429|5[0-9][0-9])' "$RUNNER_TEMP/server.log" | tail -n 12 | while IFS= read -r line; do
+            echo "::warning title=server log::${line:0:400}"
+          done
+          cp "$RUNNER_TEMP/server.log" e2e/playwright-report/ 2>/dev/null || true
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
