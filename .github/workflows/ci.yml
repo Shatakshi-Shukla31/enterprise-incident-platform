@@ -140,7 +140,7 @@ jobs:
           done
           cp "$RUNNER_TEMP/server.log" e2e/playwright-report/ 2>/dev/null || true
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-report
           path: e2e/playwright-report
