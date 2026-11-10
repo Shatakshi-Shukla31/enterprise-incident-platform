@@ -146,8 +146,11 @@ class OpenAICompatibleProvider:
                 },
             )
             response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
-        except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+            content = response.json()["choices"][0]["message"]["content"]
+            if not isinstance(content, str) or not content.strip():
+                raise LLMError("The chat provider returned no text")
+            return content
+        except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
             raise LLMError(f"LLM request failed: {exc}") from exc
 
 

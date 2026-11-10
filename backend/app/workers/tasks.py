@@ -68,6 +68,10 @@ def remove_incident_from_knowledge(incident_id: int) -> None:
 def reconcile_resolved_incidents(limit: int = 200) -> int:
     """Index resolved tickets whose original task was lost, for example during a broker outage."""
     with new_session() as db:
+        if get_settings().single_process:
+            # A hosted deploy updates the bundled articles without rerunning the demo seed.
+            # This job also runs shortly after startup, and unchanged articles are skipped.
+            ingest.ingest_directory(db)
         indexed = select(KnowledgeDocument.source_ref).where(
             KnowledgeDocument.source_type == DocumentSource.RESOLVED_INCIDENT
         )

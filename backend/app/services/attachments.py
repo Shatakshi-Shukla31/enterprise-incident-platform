@@ -1,4 +1,4 @@
-"""Files people add to assistant messages: photos, voice notes, PDFs and text or log files.
+"""Files people add to assistant messages: images, audio, video, PDFs and text or log files.
 
 The type comes from the file's own bytes, never from its name or the browser's claim, and
 there are caps per file, per person and in total, so a public demo cannot fill a small free
@@ -45,19 +45,27 @@ def _detect(data: bytes, filename: str) -> tuple[str, str] | None:
         (b"GIF87a", "image", "image/gif"),
         (b"GIF89a", "image", "image/gif"),
         (b"%PDF-", "document", "application/pdf"),
-        (b"\x1aE\xdf\xa3", "audio", "audio/webm"),
-        (b"OggS", "audio", "audio/ogg"),
         (b"ID3", "audio", "audio/mpeg"),
     )
     for prefix, kind, content_type in signatures:
         if data.startswith(prefix):
             return kind, content_type
+    if data.startswith(b"\x1aE\xdf\xa3"):
+        # WebM TrackType=1 and video codec identifiers distinguish video from voice notes.
+        video = b"\x83\x81\x01" in data or b"V_VP" in data or b"V_AV1" in data
+        return ("video", "video/webm") if video else ("audio", "audio/webm")
+    if data.startswith(b"OggS"):
+        return ("video", "video/ogg") if b"\x80theora" in data else ("audio", "audio/ogg")
     if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
         return "image", "image/webp"
     if data[:4] == b"RIFF" and data[8:12] == b"WAVE":
         return "audio", "audio/wav"
+    if data[:4] == b"RIFF" and data[8:12] == b"AVI ":
+        return "video", "video/x-msvideo"
     if data[4:8] == b"ftyp":
-        return "audio", "audio/mp4"
+        audio = data[8:12] in (b"M4A ", b"M4B ") or (b"soun" in data and b"vide" not in data)
+        kind = "audio" if audio else "video"
+        return kind, f"{kind}/mp4"
     if PurePath(filename).suffix.lower() in TEXT_SUFFIXES and b"\x00" not in data:
         try:
             data.decode("utf-8")
@@ -87,7 +95,7 @@ def save(db: Session, user: User, filename: str, data: bytes) -> Attachment:
         raise TooLarge("Files can be up to 5 MB")
     detected = _detect(data, filename)
     if detected is None:
-        raise Unsupported("Attach a photo, a voice note, a PDF, or a text or log file")
+        raise Unsupported("Attach an image, audio, video, PDF, or a text or log file")
     if _bytes_used(db, user) + len(data) > PER_USER_BYTES:
         raise TooLarge("You have used your 25 MB of attachments")
     if _bytes_used(db) + len(data) > TOTAL_BYTES:

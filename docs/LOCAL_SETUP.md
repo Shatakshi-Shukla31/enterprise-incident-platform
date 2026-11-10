@@ -90,6 +90,18 @@ npm.cmd --prefix frontend run dev
 
 Open <http://localhost:5173>. API docs are at <http://localhost:8000/docs>.
 
+### Keep the built app running in the background
+
+After installing the dependencies and running `npm.cmd --prefix frontend run build`, you can launch the database and built app in hidden background processes:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File dev/start-local.ps1
+```
+
+Open <http://127.0.0.1:8010/assistant> and choose **Explore the demo**. The launcher prepares 50 synthetic incidents on first use, indexes knowledge articles, and keeps data and logs in the ignored `dev/.local` directory. It uses the API's single-process mode, so Redis and separate workers are not needed. Run the command again after restarting Windows.
+
+If your packages live elsewhere, pass `-PythonExecutable` with the virtual environment's Python path and `-DatabaseServer` with the installed `@electric-sql/pglite-socket/dist/scripts/server.js` path. Use `-Port` and `-DatabasePort` if the defaults are occupied.
+
 To confirm the whole stack works, including the worker:
 
 ```powershell

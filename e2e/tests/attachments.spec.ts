@@ -52,7 +52,8 @@ test("a photo is shown in the conversation", async ({ page }) => {
 
 test("a voice note can be recorded and sent", async ({ page }) => {
   await openAssistant(page);
-  await page.getByRole("button", { name: "Record a voice note" }).click();
+  await page.getByRole("button", { name: "Add attachments" }).click();
+  await page.getByRole("menuitem", { name: "Record a voice note" }).click();
   await expect(page.getByRole("status")).toContainText("Recording");
   await page.waitForTimeout(1500);
   await page.getByRole("button", { name: "Stop recording" }).click();
@@ -64,5 +65,5 @@ test("a voice note can be recorded and sent", async ({ page }) => {
 test("a file of the wrong type is refused", async ({ page }) => {
   await openAssistant(page);
   await page.locator('input[name="attachment"]').setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from([0xff, 0xfe, 0x00, 0x41]) });
-  await expect(page.getByRole("list", { name: "Files to send" })).toContainText("Attach a photo, a voice note");
+  await expect(page.getByRole("list", { name: "Files to send" })).toContainText("Attach an image, audio, video");
 });

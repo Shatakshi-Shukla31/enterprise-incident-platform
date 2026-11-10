@@ -119,6 +119,27 @@ def test_uploads_need_an_account(client, api):
     assert _upload(client, api, {}, "photo.png", PNG).status_code == 401
 
 
+@pytest.mark.parametrize(
+    "name,data,kind,content_type",
+    [
+        ("clip.mp4", b"\x00\x00\x00\x18ftypisom" + b"\x00" * 64, "video", "video/mp4"),
+        ("clip.webm", WEBM + b"V_VP9", "video", "video/webm"),
+        ("clip.ogv", b"OggS\x00\x80theora" + b"\x00" * 64, "video", "video/ogg"),
+        ("clip.avi", b"RIFF\x00\x00\x00\x00AVI " + b"\x00" * 64, "video", "video/x-msvideo"),
+        ("voice.m4a", b"\x00\x00\x00\x18ftypM4A " + b"\x00" * 64, "audio", "audio/mp4"),
+    ],
+)
+def test_media_uploads_play_and_remain_private(client, api, actors, name, data, kind, content_type):
+    response = _upload(client, api, actors.user, name, data)
+    assert response.status_code == 201, response.text
+    item = response.json()
+    assert (item["kind"], item["content_type"]) == (kind, content_type)
+    mine = client.get(f"{api}/ai/attachments/{item['id']}", headers=actors.user)
+    assert mine.content == data
+    assert mine.headers["content-disposition"].startswith("inline")
+    assert client.get(f"{api}/ai/attachments/{item['id']}", headers=actors.other).status_code == 404
+
+
 def test_the_cleaner_drops_paths_and_quotes():
     assert attachments._clean_name('..\\..\\secret"name.log') == "secretname.log"
     assert attachments._clean_name("/etc/passwd") == "passwd"

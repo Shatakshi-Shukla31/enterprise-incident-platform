@@ -47,9 +47,9 @@ def upload_attachment(request: Request, file: UploadFile, user: CurrentUser, db:
 @router.get("/ai/attachments/{attachment_id}")
 def download_attachment(attachment_id: int, user: CurrentUser, db: DB) -> Response:
     item = attachments.for_download(db, user, attachment_id)
-    # Photos and voice notes play in the page. Anything else downloads, so a browser never
+    # Images, audio and video play in the page. Anything else downloads, so a browser never
     # renders it as a page from this site.
-    disposition = "inline" if item.kind in ("image", "audio") else "attachment"
+    disposition = "inline" if item.kind in ("image", "audio", "video") else "attachment"
     return Response(
         item.data,
         media_type=item.content_type,

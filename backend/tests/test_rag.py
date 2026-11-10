@@ -344,6 +344,17 @@ def test_openai_compatible_provider_sends_auth_and_parses_the_reply():
     assert seen == {"path": "/v1/chat/completions", "auth": "Bearer key-1"}
 
 
+@pytest.mark.parametrize("content", [None, "", "   ", {"invalid": "shape"}])
+def test_openai_compatible_provider_rejects_non_text_replies(content):
+    provider = llm.OpenAICompatibleProvider("http://llm.test/v1", "model", None, 5, 0.1, 100)
+    provider._client = httpx.Client(
+        base_url="http://llm.test/v1",
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json={"choices": [{"message": {"content": content}}]})),
+    )
+    with pytest.raises(llm.LLMError):
+        provider.generate(REQUEST)
+
+
 @pytest.mark.parametrize(
     "response",
     [httpx.Response(500, text="boom"), httpx.Response(200, json={"unexpected": True})],
@@ -502,6 +513,36 @@ def test_chat_says_when_it_cannot_answer(client, api, actors):
     body = client.post(f"{api}/ai/chat", json={"message": "cafeteria menu"}, headers=actors.user).json()
     assert body["insufficient_evidence"] is True
     assert body["citations"] == []
+
+
+@pytest.mark.parametrize("message", ["hi", "Hello there!", "How are you?", "thanks", "What can you do?"])
+def test_conversation_does_not_require_evidence_or_an_llm(client, api, actors, monkeypatch, message):
+    from app.rag import service
+
+    def no_search(*args, **kwargs):
+        raise AssertionError("Small talk must not search or call an LLM")
+
+    monkeypatch.setattr(service, "_chat_evidence", no_search)
+    body = client.post(f"{api}/ai/chat", json={"message": message}, headers=actors.user).json()
+    assert body["insufficient_evidence"] is False
+    assert body["provider"] == "platform_profile"
+    detail = client.get(f"{api}/ai/conversations/{body['conversation_id']}", headers=actors.user).json()
+    assert [item["role"] for item in detail["messages"]] == ["user", "assistant"]
+    assert detail["messages"][1]["content"] == body["answer"]
+
+
+@pytest.mark.parametrize("message", ["Who is your owner?", "how is your oewner ?", "Who created you?", "What is your owner's name?"])
+def test_owner_is_shatakshi_shukla(client, api, actors, message):
+    body = client.post(f"{api}/ai/chat", json={"message": message}, headers=actors.user).json()
+    assert body["insufficient_evidence"] is False
+    assert "Shatakshi Shukla" in body["answer"]
+
+
+@pytest.mark.parametrize("message", ["hi my vpn stopped working", "who is the owner of incident INC00042", "thanks but that failed"])
+def test_conversational_prefixes_do_not_swallow_support_questions(message):
+    from app.rag.conversation import conversational_reply
+
+    assert conversational_reply(message) is None
 
 
 def test_feedback_is_limited_to_the_owner(client, api, actors, similarity_floor):

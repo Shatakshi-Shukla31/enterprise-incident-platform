@@ -2,17 +2,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { AnswerText, Citations, FeedbackButtons } from "../components/Answer";
+import { AttachmentMenu } from "../components/AttachmentMenu";
+import { AssistantKnowledge } from "../components/AssistantKnowledge";
 import {
   AttachIcon,
   AttachmentView,
-  FILE_TYPES,
   MAX_FILE_BYTES,
   MAX_FILES,
-  canRecord,
   formatSize,
   useVoiceNote,
 } from "../components/Attachments";
-import { Button, ErrorNote, inputClass } from "../components/ui";
+import { Button, ErrorNote } from "../components/ui";
 import { api, uploadFile } from "../lib/api";
 import type { Answer, AttachmentInfo, ChatAnswer, Citation, Conversation, ConversationDetail } from "../lib/types";
 
@@ -37,8 +37,6 @@ interface Pending {
   error?: string;
 }
 
-const iconButton =
-  "inline-flex size-9 shrink-0 items-center justify-center rounded-md text-ink-2 hover:bg-sunken hover:text-ink disabled:cursor-not-allowed disabled:opacity-40";
 // A separate set, so no grey hover colour can win over the red while recording.
 const recordingButton = "inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-[var(--critical)] text-white";
 
@@ -48,16 +46,15 @@ export function AssistantPage() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<Pending[]>([]);
+  const [sidebar, setSidebar] = useState<"conversations" | "knowledge">("conversations");
   const endRef = useRef<HTMLDivElement>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
-  const photoInput = useRef<HTMLInputElement>(null);
   const localUrls = useRef<string[]>([]);
   useEffect(() => () => localUrls.current.forEach((url) => URL.revokeObjectURL(url)), []);
 
   function addFiles(files: File[]) {
     for (const file of files.slice(0, Math.max(0, MAX_FILES - pending.length))) {
       const key = `${file.name}-${file.size}-${Math.random()}`;
-      const showable = file.type.startsWith("image/") || file.type.startsWith("audio/");
+      const showable = /^(image|audio|video)\//.test(file.type);
       const localUrl = showable ? URL.createObjectURL(file) : undefined;
       if (localUrl) localUrls.current.push(localUrl);
       const base = { key, name: file.name, size: file.size, localUrl };
@@ -120,11 +117,16 @@ export function AssistantPage() {
       ]);
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
+    onError: (_error, { text, files }) => {
+      setTurns((current) => current.slice(0, -1));
+      setMessage(text);
+      setPending(files.map((info) => ({ key: `retry-${info.id}`, name: info.filename, size: info.size_bytes, status: "ready", info, localUrl: info.localUrl })));
+    },
   });
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (!message.trim() || uploading) return;
+    if (message.trim().length < 2 || uploading || send.isPending || voice.recording || pending.some((item) => item.status === "failed")) return;
     const files = pending.flatMap((item) => (item.status === "ready" && item.info ? [{ ...item.info, localUrl: item.localUrl }] : []));
     send.mutate({ text: message.trim(), files });
   }
@@ -135,18 +137,32 @@ export function AssistantPage() {
         <Button
           variant="secondary"
           className="w-full"
+          disabled={send.isPending}
           onClick={() => {
             setConversationId(null);
             setTurns([]);
+            setMessage("");
+            setPending([]);
+            send.reset();
           }}
         >
           New conversation
         </Button>
-        <ul className="mt-2 hidden max-h-[70vh] space-y-0.5 overflow-auto lg:block">
+        <div role="group" aria-label="Assistant sections" className="mt-3 grid grid-cols-2 gap-1 rounded-md bg-sunken p-1">
+          {(["conversations", "knowledge"] as const).map((section) => (
+            <button key={section} type="button" aria-pressed={sidebar === section} onClick={() => setSidebar(section)} className={`rounded px-2 py-1.5 text-xs font-medium ${sidebar === section ? "bg-surface text-ink shadow-sm" : "text-ink-3"}`}>
+              {section === "conversations" ? "Chats" : "Knowledge"}
+            </button>
+          ))}
+        </div>
+        {sidebar === "knowledge" ? <AssistantKnowledge onAsk={(question) => setMessage(question)} /> : <>
+        <ErrorNote error={conversations.error} />
+        <ul aria-label="Conversations" className="mt-2 max-h-40 space-y-0.5 overflow-auto lg:max-h-[65vh]">
           {conversations.data?.map((item) => (
             <li key={item.id}>
               <button
                 type="button"
+                disabled={send.isPending}
                 onClick={() => void open(item.id)}
                 className={`block w-full truncate rounded-md px-2 py-1.5 text-left text-sm ${item.id === conversationId ? "bg-accent-soft text-ink" : "text-ink-2 hover:bg-sunken"}`}
               >
@@ -155,16 +171,27 @@ export function AssistantPage() {
             </li>
           ))}
         </ul>
+        </>}
+        <p className="pt-4 text-xs text-ink-3">Owner: <span className="font-medium text-ink-2">Shatakshi Shukla</span></p>
       </aside>
 
       <div className="flex min-h-[70vh] min-w-0 flex-col rounded-lg border border-line bg-surface">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
+          <h1 className="text-sm font-semibold text-ink">Support assistant</h1>
+          <span className="rounded-full bg-accent-soft px-2 py-1 text-xs text-ink-2">Knowledge-connected chat</span>
+        </header>
         <div className="flex-1 space-y-4 overflow-auto p-4" aria-live="polite">
           {turns.length === 0 && (
             <div className="py-12 text-center">
-              <h1 className="text-lg font-semibold text-ink">Support assistant</h1>
+              <h2 className="text-lg font-semibold text-ink">Hi! How can I help?</h2>
               <p className="mx-auto mt-1 max-w-md text-sm text-ink-3">
-                Answers come only from documents you are allowed to read, and each one cites its sources. If the evidence is not there, it says so.
+                Ask about an IT issue, search Knowledge, or share a file. Troubleshooting answers use sources you are allowed to read.
               </p>
+              <div className="mx-auto mt-5 flex max-w-lg flex-wrap justify-center gap-2">
+                {["Who is your owner?", "What can you do?", "My VPN keeps disconnecting"].map((question) => (
+                  <Button key={question} variant="secondary" onClick={() => setMessage(question)}>{question}</Button>
+                ))}
+              </div>
             </div>
           )}
           {turns.map((turn, index) =>
@@ -209,7 +236,7 @@ export function AssistantPage() {
               </div>
             ),
           )}
-          {send.isPending && <p className="text-sm text-ink-3">Searching the knowledge base…</p>}
+          {send.isPending && <p role="status" className="text-sm text-ink-3">Preparing your answer…</p>}
           <ErrorNote error={send.error} />
           <div ref={endRef} />
         </div>
@@ -240,6 +267,9 @@ export function AssistantPage() {
               <span aria-hidden className="size-2.5 animate-pulse rounded-full bg-[var(--critical)]" />
               Recording {Math.floor(voice.seconds / 60)}:{String(voice.seconds % 60).padStart(2, "0")}
               {voice.transcribes ? ". Your words appear in the message box." : "."}
+              <button type="button" className={recordingButton} aria-label="Stop recording" title="Stop recording" onClick={voice.stop}>
+                <AttachIcon name="stop" />
+              </button>
             </p>
           )}
           {voice.error && (
@@ -247,55 +277,22 @@ export function AssistantPage() {
               {voice.error}
             </p>
           )}
-          <div className="flex items-center gap-1">
-            <input
-              ref={fileInput}
-              type="file"
-              name="attachment"
-              accept={FILE_TYPES}
-              multiple
-              hidden
-              onChange={(e) => {
-                addFiles(Array.from(e.target.files ?? []));
-                e.target.value = "";
-              }}
-            />
-            <input
-              ref={photoInput}
-              type="file"
-              name="photo"
-              accept="image/*"
-              capture="environment"
-              hidden
-              onChange={(e) => {
-                addFiles(Array.from(e.target.files ?? []));
-                e.target.value = "";
-              }}
-            />
-            <button type="button" className={iconButton} aria-label="Attach a file" title="Attach a file" disabled={full} onClick={() => fileInput.current?.click()}>
-              <AttachIcon name="clip" />
-            </button>
-            <button type="button" className={iconButton} aria-label="Add a photo" title="Add a photo" disabled={full} onClick={() => photoInput.current?.click()}>
-              <AttachIcon name="camera" />
-            </button>
-            <button
-              type="button"
-              className={voice.recording ? recordingButton : iconButton}
-              aria-label={voice.recording ? "Stop recording" : "Record a voice note"}
-              aria-pressed={voice.recording}
-              title={canRecord() ? (voice.recording ? "Stop recording" : "Record a voice note") : "This browser cannot record audio"}
-              disabled={!canRecord() || (full && !voice.recording)}
-              onClick={() => (voice.recording ? voice.stop() : voice.start())}
-            >
-              <AttachIcon name={voice.recording ? "stop" : "mic"} />
-            </button>
-            <input aria-label="Message" className={inputClass} placeholder="Describe the problem" maxLength={2000} value={message} onChange={(e) => setMessage(e.target.value)} />
-            <Button type="submit" disabled={!message.trim() || send.isPending || uploading}>
-              Send
-            </Button>
+          <div className="relative rounded-2xl border border-line bg-surface p-2 focus-within:border-accent">
+            <textarea aria-label="Message" rows={2} className="block min-h-16 w-full resize-y rounded-lg bg-transparent px-2 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus-visible:outline-none disabled:opacity-60" placeholder="Ask a question or describe the problem…" maxLength={2000} value={message} disabled={send.isPending} onChange={(e) => setMessage(e.target.value)} onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }
+            }} />
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <AttachmentMenu disabled={full || send.isPending} recording={voice.recording} onFiles={addFiles} onRecord={() => voice.recording ? voice.stop() : voice.start()} />
+              <Button type="submit" aria-label="Send" title="Send message" className="size-9 rounded-full !p-0" disabled={message.trim().length < 2 || send.isPending || uploading || voice.recording || pending.some((item) => item.status === "failed")}>
+                <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-ink-3">
-            The assistant reads text and log files. Photos and voice notes are saved with the conversation, but it cannot understand them yet. Up to {MAX_FILES} files of 5 MB each.
+            Up to {MAX_FILES} files, 5 MB each. Text and logs help the knowledge search. For images, audio, video, and PDFs, describe the contents in your message. Shift+Enter adds a new line.
           </p>
         </form>
       </div>

@@ -128,7 +128,7 @@ export interface Conversation {
 
 export interface AttachmentInfo {
   id: number;
-  kind: "image" | "audio" | "text" | "document";
+  kind: "image" | "audio" | "video" | "text" | "document";
   filename: string;
   content_type: string;
   size_bytes: number;

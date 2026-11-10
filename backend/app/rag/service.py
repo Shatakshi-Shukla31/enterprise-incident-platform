@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.core.enums import DocumentSource
 from app.models import AIConversation, AIMessage, AIRecommendation, Incident, Runbook, User
 from app.rag import retriever
+from app.rag.conversation import conversational_reply
 from app.rag.generator import GeneratedAnswer, generate_answer
 from app.services import attachments
 from app.services.access import is_staff
@@ -181,9 +182,12 @@ def chat(
     # Error lines from an attached log describe the problem better than most summaries do.
     file_text = attachments.evidence(files)
     question = f"{message}\n{file_text}" if file_text else message
-    retrieval_query, chunks = _chat_evidence(db, user, question, previous_user, incident)
-    db.commit()
-    result = generate_answer(retrieval_query, chunks, history)
+    result = conversational_reply(message) if not files and incident is None else None
+    chunks: list[retriever.RetrievedChunk] = []
+    if result is None:
+        retrieval_query, chunks = _chat_evidence(db, user, question, previous_user, incident)
+        db.commit()
+        result = generate_answer(retrieval_query, chunks, history)
     result.latency_ms = int((time.perf_counter() - started) * 1000)
 
     recommendation = _store(db, user, message, result, incident.id if incident else None)

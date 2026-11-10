@@ -5,6 +5,8 @@
 
 An incident management system with ML triage and evidence-grounded troubleshooting. It covers the whole ticket lifecycle: raising, routing, SLA tracking, escalation, resolution, and approval-gated remediation. Models help at each stage, and people can override every one of them.
 
+**Owner: Shatakshi Shukla.** See [assistant setup](docs/ASSISTANT.md) for chat API configuration, knowledge search, and attachments.
+
 All demo data is synthetic. The SLA method is also benchmarked on a public, real incident log, because a score on self-generated data proves very little.
 
 **Live demo:** <https://incident-platform-ql4e.onrender.com>. Click **Explore the demo** to look around as a manager with no account. The demo account is read-only, and the server enforces that on every request. It runs on free hosting and sleeps when idle, so the first visit can take about a minute.
@@ -27,7 +29,7 @@ All demo data is synthetic. The SLA method is also benchmarked on a public, real
 - **ML triage:** predicts the category and recommends a team, each with a confidence score, and records every human correction.
 - **SLA risk:** estimates breach probability using only what is known when a ticket opens, and shows which facts moved each score.
 - **RAG troubleshooting:** retrieves knowledge articles and resolved incidents with pgvector, then answers with citations or declines when the evidence is weak.
-- **Support assistant:** conversational troubleshooting, related incidents and suggested runbooks, limited to documents the user may read. People can attach photos, voice notes, PDFs and text or log files, and the error lines of an attached log feed the search.
+- **Support assistant:** friendly greeting and owner replies, conversational troubleshooting, an in-chat knowledge search, related incidents and suggested runbooks, limited to documents the user may read. Separate image, audio, video, PDF, and file pickers support private attachments, with media playback. The error lines of an attached log feed the search.
 - **Automation:** Celery jobs for SLA checks, notifications, knowledge indexing and auto-close, plus remediation that needs a second person's approval.
 - **Notifications:** personal alerts with unread and read counts charted by type and by ticket status.
 - **Analytics:** volume, SLA compliance, resolution time, live model acceptance and AI usage, all computed from stored records.
@@ -184,7 +186,7 @@ docs/             Architecture, API, evaluation, setup and generated metrics
 - **Remediation handlers are simulators.** They validate the target and record what would happen. Nothing touches real infrastructure.
 - **Text models have only seen synthetic tickets.** Expect lower scores on real ones, and retrain before relying on them.
 - **The evidence threshold has a thin margin.** The weakest answerable query scored 0.244 and the strongest unanswerable one 0.366, so the two groups overlap and some good questions are refused.
-- **The assistant cannot see photos or hear voice notes.** They are saved with the conversation. It reads text and log files only. Turning speech into text uses the browser's own service where one exists, so Chrome and Edge send the audio to Google or Microsoft for that step.
+- **The assistant does not interpret images, audio, video, or PDFs.** They are saved with the conversation; describe their contents in the message. It reads text and log files only. Turning speech into text uses the browser's own service where one exists, so Chrome and Edge send the audio to Google or Microsoft for that step.
 - **Injection screening is pattern based.** It catches common attacks, and output validation limits the damage, but a determined attacker may word around it.
 - **Follow-up detection is a heuristic.** It looks for words like "that" and "else" and checks whether the message finds strong evidence alone. Its 0.55 cut-off comes from 18 hand-checked messages, so an unrelated question can still borrow earlier context.
 - **SLA clocks run on wall-clock time** rather than business hours.

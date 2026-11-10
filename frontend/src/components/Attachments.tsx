@@ -4,7 +4,15 @@ import type { AttachmentInfo } from "../lib/types";
 
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_FILES = 3;
-export const FILE_TYPES = "image/*,audio/*,.pdf,.txt,.log,.csv,.json,.md,.xml,.yaml,.yml,.ini,.conf,.cfg";
+export const TEXT_FILE_TYPES = ".txt,.log,.csv,.json,.md,.xml,.yaml,.yml,.ini,.conf,.cfg";
+export const FILE_TYPES = `image/*,audio/*,video/mp4,video/webm,video/ogg,.avi,.pdf,${TEXT_FILE_TYPES}`;
+
+export const ATTACHMENT_OPTIONS = [
+  { name: "image", label: "Image", accept: "image/png,image/jpeg,image/gif,image/webp", icon: "image" },
+  { name: "audio", label: "Audio", accept: "audio/mpeg,audio/wav,audio/ogg,audio/webm,audio/mp4,.m4a", icon: "mic" },
+  { name: "video", label: "Video", accept: "video/mp4,video/webm,video/ogg,.avi", icon: "video" },
+  { name: "pdf", label: "PDF", accept: ".pdf,application/pdf", icon: "file" },
+] as const;
 
 export function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -18,6 +26,8 @@ const PATHS = {
   mic: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM19 11a7 7 0 0 1-14 0M12 18v3",
   stop: "M7 7h10v10H7z",
   file: "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5",
+  image: "M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM3 16l5-5 5 5 3-3 5 5M16 8h.01",
+  video: "M3 5h12v14H3zM15 10l6-4v12l-6-4",
 };
 
 export function AttachIcon({ name }: { name: keyof typeof PATHS }) {
@@ -29,7 +39,7 @@ export function AttachIcon({ name }: { name: keyof typeof PATHS }) {
 }
 
 /** A private file is fetched with the session token and shown from memory, because an
- * <img> or <audio> tag cannot send the token itself. */
+ * media tags cannot send the token themselves. */
 function useFileUrl(id: number | null, localUrl?: string): string | null {
   const [url, setUrl] = useState<string | null>(localUrl ?? null);
   useEffect(() => {
@@ -61,13 +71,16 @@ async function download(item: AttachmentInfo) {
 }
 
 export function AttachmentView({ item, localUrl }: { item: AttachmentInfo; localUrl?: string }) {
-  const playable = item.kind === "image" || item.kind === "audio";
+  const playable = item.kind === "image" || item.kind === "audio" || item.kind === "video";
   const url = useFileUrl(playable ? item.id : null, localUrl);
   if (item.kind === "image" && url) {
     return <img src={url} alt={item.filename} className="max-h-48 max-w-full rounded-md border border-line" />;
   }
   if (item.kind === "audio" && url) {
     return <audio controls src={url} aria-label={`Voice note ${item.filename}`} className="h-10 w-64 max-w-full" />;
+  }
+  if (item.kind === "video" && url) {
+    return <video controls preload="metadata" src={url} aria-label={`Video ${item.filename}`} className="max-h-64 max-w-full rounded-md border border-line" />;
   }
   return (
     <button

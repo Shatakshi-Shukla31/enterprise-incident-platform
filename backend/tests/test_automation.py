@@ -118,6 +118,26 @@ def test_reconcile_indexes_tickets_whose_task_was_lost(make_incident, db):
     assert tasks.reconcile_resolved_incidents() == 0
 
 
+def test_hosted_reconcile_updates_bundled_articles_without_resetting_tickets(make_incident, db, tmp_path, monkeypatch):
+    incident = make_incident()
+    settings = tasks.get_settings()
+    monkeypatch.setattr(settings, "single_process", True)
+    monkeypatch.setattr(settings, "knowledge_dir", tmp_path)
+    article = tmp_path / "owner.md"
+    content = "---\nid: KB-OWNER\ntitle: Platform owner\naccess: public\n---\nThe owner is Shatakshi Shukla.\n"
+    article.write_text(content, encoding="utf-8")
+    assert tasks.reconcile_resolved_incidents() == 0
+    document = db.scalar(select(KnowledgeDocument).where(KnowledgeDocument.source_ref == "KB-OWNER"))
+    original_id, original_hash = document.id, document.content_hash
+    article.write_text(content + "Open the + menu to attach files.\n", encoding="utf-8")
+    tasks.reconcile_resolved_incidents()
+    db.expire_all()
+    document = db.get(KnowledgeDocument, original_id)
+    assert document.content_hash != original_hash
+    assert db.query(KnowledgeDocument).count() == 1
+    assert db.get(Incident, incident["id"]) is not None
+
+
 def test_a_broken_broker_does_not_fail_the_request(client, api, actors, make_incident, monkeypatch):
     from app.workers import celery_app as module
 
